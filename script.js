@@ -11,7 +11,6 @@ const APP_CONFIG = typeof CONFIG !== 'undefined' ? CONFIG : {
 let myCoords=null, myUniqueId='', myEmoji='', myTransportMode='', myTransportMode2='', mode1Days=0, mode2Days=0, myDepartureTime='07:30', myFullAddress='';
 let participants=[], scanning=false, animationFrameId=null, gameTargets=[], scannedTargets=[], attemptsLeft=5, score=0, gameActive=false;
 let companyCoords=null, companyAddress='', rgpdAccepted=false, inviteCountdownInterval=null, scanCount=0;
-// Structure pour stocker { "Covoiturage": "1", "Vélo": "3" }
 let selectedAlternatives={}, selectedConstraints={}, selectedLevers={}, commitmentLevel=80;
 let googleScriptUrl = APP_CONFIG.GOOGLE_SCRIPT_URL;
 
@@ -119,6 +118,14 @@ function checkAccessCode() {
         $('locationSection').style.display = 'block';
     } else {
         showError("Code invalide");
+    }
+}
+
+// ================= RESET (NOUVEAU) =================
+function resetGameSequence() {
+    if(confirm("⚠️ ATTENTION : Voulez-vous vraiment recommencer à zéro ?\n\nCela effacera votre profil et vos scans.")) {
+        localStorage.clear();
+        location.reload();
     }
 }
 
@@ -272,7 +279,7 @@ function tick(video, type) {
                 if(type === 'company' && data.type === 'company') { handleCompanyScan(data); success = true; }
                 else if(data.id && data.lat) {
                     if(type === 'game') success = handleGameScan(data);
-                    else if(type === 'positioning') success = handlePositioningScan(data); // Correction Triangulation
+                    else if(type === 'positioning') success = handlePositioningScan(data);
                     else success = addParticipant(data);
                 }
                 if(success) stopAllCameras();
