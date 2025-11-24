@@ -6,7 +6,7 @@ const CONFIG = {
     EXPIRATION_DATE: "2025-12-31",
 
     // Les codes d'accès valides pour les participants (ex: "25", "TOTAL2024")
-    VALID_ACCESS_CODES: ["25"],
+    VALID_ACCESS_CODES: ["25", "TEST"],
 
     // Mot de passe pour accéder au panneau admin (en bas à droite)
     ADMIN_PASSWORD: 'mobilite2025',
