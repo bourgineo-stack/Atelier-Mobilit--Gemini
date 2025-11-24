@@ -125,7 +125,8 @@ function checkAccessCode() {
 function resetGameSequence() {
     if(confirm("⚠️ ATTENTION : Voulez-vous vraiment recommencer à zéro ?\n\nCela effacera votre profil et vos scans.")) {
         localStorage.clear();
-        location.reload();
+        // On force le rechargement depuis le serveur pour éviter le cache
+        location.reload(true);
     }
 }
 
