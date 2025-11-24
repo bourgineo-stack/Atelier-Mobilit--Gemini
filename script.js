@@ -57,6 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.innerHTML = "<h1 style='color:white;text-align:center;margin-top:50px;'>Session Expirée</h1>";
         return;
     }
+    
     restoreUserData();
     checkRGPDStatus();
     if($('multimodalCheck')) $('multimodalCheck').checked = false;
@@ -74,6 +75,41 @@ function acceptRGPD() {
     localStorage.setItem('rgpdAccepted', 'true');
     $('rgpdNotice').style.display = 'none';
     showSuccess("RGPD Validé");
+}
+
+function showRGPDDetails() {
+    const pseudo = myEmoji || "(généré après validation)";
+    const modal = document.createElement('div');
+    modal.id = 'rgpdInfoModal';
+    modal.className = 'modal active';
+    modal.innerHTML = `
+        <div class="modal-content glass-effect" style="background:#1e293b; color:white; max-height:90vh; overflow-y:auto;">
+            <h2 style="color:#a5b4fc;">🔒 Protection Données</h2>
+            
+            <h3 style="margin-top:15px;">Collecte</h3>
+            <ul style="margin-left:20px; opacity:0.9;">
+                <li>📍 Coordonnées GPS (pour le calcul de distance)</li>
+                <li>🚗 Mode de transport & Horaires</li>
+                <li>🆔 Identifiant anonyme</li>
+            </ul>
+
+            <h3 style="margin-top:15px;">Utilisation</h3>
+            <p style="opacity:0.9;">Données utilisées <strong>uniquement</strong> pour l'animation du jeu en temps réel (calculs de proximité, pelotes de laine).</p>
+
+            <h3 style="margin-top:15px;">Durée & Tiers</h3>
+            <p style="opacity:0.9;">Stockage local sur votre appareil + Google Sheet de l'animateur. Suppression sous <strong>7 jours</strong>.</p>
+
+            <h3 style="margin-top:15px;">Vos droits</h3>
+            <ul style="margin-left:20px; opacity:0.9;">
+                <li>Droit d'accès et de suppression.</li>
+                <li>Identifiant : <strong>${pseudo}</strong></li>
+                <li>Contact : <strong>volt.face@outlook.fr</strong></li>
+            </ul>
+
+            <button class="btn-primary" style="margin-top:20px;" onclick="document.getElementById('rgpdInfoModal').remove()">Fermer</button>
+        </div>
+    `;
+    document.body.appendChild(modal);
 }
 
 function showStep(n) {
@@ -125,7 +161,6 @@ function checkAccessCode() {
 function resetGameSequence() {
     if(confirm("⚠️ ATTENTION : Voulez-vous vraiment recommencer à zéro ?\n\nCela effacera votre profil et vos scans.")) {
         localStorage.clear();
-        // On force le rechargement depuis le serveur pour éviter le cache
         location.reload(true);
     }
 }
