@@ -1,0 +1,1677 @@
+// ================= RECUPERATION CONFIG =================
+// Si config.js n'est pas chargé, on met des valeurs par défaut pour éviter le crash
+const APP_CONFIG = typeof CONFIG !== 'undefined' ? CONFIG : {
+    EXPIRATION_DATE: "2025-12-31",
+    VALID_ACCESS_CODES: ["25"],
+    ADMIN_PASSWORD: "test",
+    MIN_PARTICIPANTS_REQUIRED: 1,
+    GOOGLE_SCRIPT_URL: ""
+};
+
+// ================= CONSTANTES & VARIABLES =================
+const VALID_ACCESS_CODES = APP_CONFIG.VALID_ACCESS_CODES;
+const ADMIN_PASSWORD = APP_CONFIG.ADMIN_PASSWORD;
+const MIN_PARTICIPANTS_REQUIRED = APP_CONFIG.MIN_PARTICIPANTS_REQUIRED;
+
+// Émojis pour pseudonymes (6 possibles)
+const EMOJI_SET = [
+    '🦸', '🐼', '🦁', '🐻', '🦊', '🐱',    // Originaux
+    '🐯', '🦄', '🐸', '🦉', '🐙', '🦋',    // Ajouts colorés
+    '🐨', '🦒', '🦘', '🦥', '🐲', '🦕'     // Animaux sympas
+];
+
+const ALTERNATIVES = [
+    "Covoiturage régulier",
+    "Autopartage / Location entre particuliers",
+    "Transports en commun (Bus/Métro/Tram)",
+    "Train/RER",
+    "Vélo personnel",
+    "Vélo électrique (VAE)",
+    "Vélo de fonction",
+    "Trottinette électrique ⚠️ (Pensez à l'assurance !)",
+    "Marche à pied",
+    "Vélo-taf (combiner vélo + TC)",
+    "Télétravail partiel",
+    "Télétravail complet",
+    "Coworking de proximité",
+    "Horaires décalés",
+    "Semaine de 4 jours",
+    "Intermodalité (combiner plusieurs modes)",
+    "Véhicule électrique",
+    "Autre (précisez)"
+];
+
+const CONSTRAINTS = [
+    "Horaires de travail décalés/atypiques",
+    "Enfants à déposer/récupérer",
+    "Matériel/outils à transporter",
+    "Distance trop grande (>30 km)",
+    "Pas de TC à proximité",
+    "Pas de piste cyclable sécurisée",
+    "Conditions météo défavorables",
+    "Problème de santé/handicap",
+    "Besoin de flexibilité (RDV pro)",
+    "Statut cadre/astreintes",
+    "Coût trop élevé des alternatives",
+    "Manque d'informations sur les alternatives",
+    "Peur de perdre en confort",
+    "Zone rurale/périurbaine mal desservie",
+    "Autre (précisez)"
+];
+
+const LEVERS = [
+    "Prime mobilité durable (FMD)",
+    "Prise en charge abonnement TC à 75%",
+    "Parking vélo sécurisé",
+    "Vestiaire/douches",
+    "Bornes de recharge électrique",
+    "Plateforme covoiturage interne",
+    "Vélos de fonction/flotte",
+    "Formation sensibilisation mobilité",
+    "Horaires aménagés",
+    "Garage vélo avec kit réparation",
+    "Indemnité kilométrique vélo (IKV)",
+    "Autre (précisez)"
+];
+
+const miniChallenges = [
+    { title: "🤝 Connecteurs", task: "Présentez-vous mutuellement à une 3ème personne que vous scannerez ensemble", icon: "🎭" },
+    { title: "🔤 Chasseurs d'initiales", task: "Scannez 2 personnes dont les prénoms commencent par la même lettre", icon: "🎲" },
+    { title: "🕵️ Devine mon adresse", task: "Scannez quelqu'un et tentez de deviner l'adresse qu'il a renseignée (rue, quartier...)", icon: "🏘️" },
+    { title: "🆘 Entraide", task: "Trouvez quelqu'un qui semble perdu ou qui a scanné peu de personnes et aidez-le !", icon: "🤲" },
+    { title: "📸 Selfie mobilité", task: "Prenez un selfie créatif sur le thème du transport (devant un vélo, un panneau, dans une voiture...)", icon: "🤳", hasPhoto: true }
+];
+
+const CO2_FACTORS = {
+    'car-thermal': 0.193,
+    'car-electric': 0.020,
+    'carpool': 0.096,
+    'train': 0.006,
+    'bus': 0.103,
+    'bike': 0,
+    'ebike': 0.002,
+    'walk': 0,
+    'remote': 0
+};
+
+// ========== TRADUCTION MODES DE TRANSPORT ==========
+const TRANSPORT_LABELS = {
+    'car-thermal': 'Voiture thermique',
+    'car-electric': 'Voiture électrique',
+    'carpool': 'Covoiturage',
+    'train': 'Train/RER',
+    'bus': 'Bus/Tram',
+    'bike': 'Vélo',
+    'ebike': 'Vélo électrique',
+    'walk': 'Marche',
+    'remote': 'Télétravail'
+};
+
+function translateTransport(mode) {
+    return TRANSPORT_LABELS[mode] || mode;
+}
+
+// ========== VARIABLES GLOBALES ==========
+let myCoords = null;
+let myUniqueId = '';
+let myEmoji = '';
+let myTransportMode = '';
+let myTransportMode2 = '';
+let mode1Days = 0;
+let mode2Days = 0;
+let myDepartureTime = '07:30';
+let myFullAddress = '';
+let participants = [];
+let scanning = false;
+let animationFrameId = null;
+let gameTargets = [];
+let scannedTargets = [];
+let attemptsLeft = 5;
+let score = 0;
+let gameActive = false;
+let companyCoords = null;
+let companyAddress = '';
+let rgpdAccepted = false;
+let inviteCountdownInterval = null;
+// URL Google Apps Script - Initialisée avec Config, surchargeable
+let googleScriptUrl = APP_CONFIG.GOOGLE_SCRIPT_URL;
+let scanCount = 0;
+
+let selectedAlternatives = {};
+let selectedConstraints = [];
+let selectedLevers = [];
+let commitmentLevel = 80;
+
+// ========== FONCTIONS UTILITAIRES ==========
+function $(id) {
+    return document.getElementById(id);
+}
+
+function generateUniqueId() {
+    return Math.random().toString(36).substr(2, 15);
+}
+
+function generateEmojiPseudo() {
+    // Génère un pseudo de 3 émojis aléatoires
+    let pseudo = '';
+    for (let i = 0; i < 3; i++) {
+        pseudo += EMOJI_SET[Math.floor(Math.random() * EMOJI_SET.length)];
+    }
+    return pseudo;
+}
+
+// ========== RÉINITIALISATION SESSION ==========
+function resetSessionData() {
+    const preservedKeys = ['myUniqueId', 'myEmoji', 'rgpdAccepted', 'googleScriptUrl'];
+
+    // Sauvegarder temporairement
+    const preserved = {};
+    preservedKeys.forEach(key => {
+        const value = localStorage.getItem(key);
+        if (value) preserved[key] = value;
+    });
+
+    // Tout effacer
+    localStorage.clear();
+
+    // Restaurer les éléments préservés
+    Object.entries(preserved).forEach(([key, value]) => {
+        localStorage.setItem(key, value);
+    });
+
+    console.log('🔄 Données de session réinitialisées');
+}
+
+function restoreUserData() {
+    myUniqueId = localStorage.getItem('myUniqueId');
+    if (!myUniqueId) {
+        myUniqueId = generateUniqueId();
+        localStorage.setItem('myUniqueId', myUniqueId);
+    }
+
+    myEmoji = localStorage.getItem('myEmoji');
+    if (!myEmoji) {
+        myEmoji = generateEmojiPseudo();
+        localStorage.setItem('myEmoji', myEmoji);
+    }
+
+    const savedCoords = localStorage.getItem('userCoords');
+    if (savedCoords) {
+        myCoords = JSON.parse(savedCoords);
+    }
+
+    myTransportMode = localStorage.getItem('transportMode') || '';
+    myTransportMode2 = localStorage.getItem('transportMode2') || '';
+    mode1Days = parseInt(localStorage.getItem('mode1Days') || '0');
+    mode2Days = parseInt(localStorage.getItem('mode2Days') || '0');
+    myDepartureTime = localStorage.getItem('departureTime') || '07:30';
+    
+    // Récupérer depuis localStorage OU garder l'URL Config
+    const savedUrl = localStorage.getItem('googleScriptUrl');
+    if (savedUrl) {
+        googleScriptUrl = savedUrl;
+    }
+    // Sinon, googleScriptUrl garde sa valeur de config
+
+    scanCount = parseInt(localStorage.getItem('scanCount') || '0');
+}
+
+function showError(message) {
+    const alert = document.createElement('div');
+    alert.className = 'alert alert-error show';
+    alert.textContent = message;
+    alert.style.position = 'fixed';
+    alert.style.top = '20px';
+    alert.style.left = '50%';
+    alert.style.transform = 'translateX(-50%)';
+    alert.style.zIndex = '10000';
+    alert.style.maxWidth = '90%';
+    document.body.appendChild(alert);
+
+    setTimeout(() => {
+        alert.remove();
+    }, 5000);
+}
+
+function showSuccess(message) {
+    const alert = document.createElement('div');
+    alert.className = 'alert alert-success show';
+    alert.textContent = message;
+    alert.style.position = 'fixed';
+    alert.style.top = '20px';
+    alert.style.left = '50%';
+    alert.style.transform = 'translateX(-50%)';
+    alert.style.zIndex = '10000';
+    alert.style.maxWidth = '90%';
+    alert.style.fontSize = '1.1rem';
+    alert.style.fontWeight = '600';
+    document.body.appendChild(alert);
+
+    setTimeout(() => {
+        alert.remove();
+    }, 5000);
+}
+
+// ========== GESTION RGPD ==========
+function acceptRGPD() {
+    rgpdAccepted = true;
+    localStorage.setItem('rgpdAccepted', 'true');
+    const notice = $('rgpdNotice');
+    if (notice) {
+        notice.style.display = 'none';
+    }
+    showSuccess('✅ Merci ! Vous pouvez continuer.');
+}
+
+function showRGPDDetails() {
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.8);
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+    `;
+
+    modal.innerHTML = `
+        <div style="background: white; color: #333; padding: 30px; border-radius: 20px; max-width: 600px; max-height: 80vh; overflow-y: auto;">
+          <h2 style="color: #667eea; margin-top: 0;">🔒 Protection de vos données</h2>
+          
+          <h3>Quelles données collectons-nous ?</h3>
+          <ul>
+            <li>📍 Coordonnées GPS de votre adresse</li>
+            <li>🚗 Votre mode de transport actuel</li>
+            <li>⏰ Votre heure de départ habituelle</li>
+            <li>🆔 Un identifiant anonyme généré automatiquement</li>
+          </ul>
+          
+          <h3>Pourquoi ?</h3>
+          <p>Ces données permettent de réaliser l'atelier de manière interactive et de visualiser collectivement les trajets domicile-travail.</p>
+          
+          <h3>Combien de temps ?</h3>
+          <p>Vos données sont conservées <strong>uniquement pendant la durée de l'atelier</strong> et supprimées dans les <strong>7 jours suivants</strong>.</p>
+          
+          <h3>Qui y a accès ?</h3>
+          <p>Uniquement l'animateur de l'atelier pour générer les statistiques collectives. Aucune donnée n'est partagée à des tiers.</p>
+          
+          <h3>Vos droits</h3>
+          <p>Vous pouvez à tout moment :</p>
+          <ul>
+            <li>Demander la suppression de vos données (indiquez votre pseudo emoji ${myEmoji})</li>
+            <li>Consulter vos données enregistrées</li>
+            <li>Vous retirer de l'atelier</li>
+          </ul>
+          
+          <p style="margin-top: 20px; font-size: 0.9em; color: #666;">
+              Pour exercer ces droits, contactez l'animateur de l'atelier ou envoyez un email avec votre pseudo emoji à : <strong>volt.face@outlook.fr</strong>
+          </p>
+          
+          <button onclick="closeRGPDModal()" style="background: #667eea; color: white; border: none; padding: 15px 30px; border-radius: 10px; font-size: 16px; cursor: pointer; width: 100%; margin-top: 20px;">
+            ✅ J'ai compris
+          </button>
+        </div>
+    `;
+
+    modal.id = 'rgpdModal';
+    document.body.appendChild(modal);
+}
+
+function closeRGPDModal() {
+    const modal = $('rgpdModal');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+function checkRGPDStatus() {
+    const accepted = localStorage.getItem('rgpdAccepted');
+    if (accepted === 'true') {
+        const notice = $('rgpdNotice');
+        if (notice) {
+            notice.style.display = 'none';
+        }
+        rgpdAccepted = true;
+    }
+}
+
+// ========== GOOGLE SHEETS SYNC ==========
+async function sendToGoogleSheets(data) {
+    if (!googleScriptUrl) {
+        console.warn('⚠️ Google Script URL non configurée');
+        return false;
+    }
+
+    console.log('📤 Envoi vers Google Sheets:', data);
+
+    try {
+        // Utiliser mode: 'no-cors' pour éviter les erreurs CORS
+        const response = await fetch(googleScriptUrl, {
+            method: 'POST',
+            mode: 'no-cors',  // ← CRITIQUE pour Google Apps Script
+            body: JSON.stringify(data)
+        });
+
+        // Avec no-cors, on ne peut pas lire le statut, mais pas d'erreur = succès
+        console.log('✅ Données envoyées (mode no-cors)');
+        return true;
+    } catch (error) {
+        console.error('❌ Erreur envoi:', error);
+        return false;
+    }
+}
+
+async function getFromGoogleSheets() {
+    if (!googleScriptUrl) {
+        return null;
+    }
+
+    try {
+        const response = await fetch(googleScriptUrl + '?action=get');
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error('❌ Erreur récupération Google Sheets:', error);
+        return null;
+    }
+}
+
+// ========== GESTION CODE D'ACCÈS ==========
+function checkAccessCode() {
+    const input = $('accessCodeInput');
+    const code = input.value.trim();
+
+    if (!rgpdAccepted) {
+        showError('⚠️ Veuillez accepter la politique de données avant de continuer');
+        return;
+    }
+
+    if (VALID_ACCESS_CODES.includes(code)) {
+        $('accessCodeInput').style.display = 'none';
+        input.parentElement.querySelector('button').style.display = 'none';
+        $('locationSection').style.display = 'block';
+    } else {
+        showError('❌ Code d\'accès invalide');
+        input.value = '';
+    }
+}
+
+// ========== GESTION MULTIMODAL ==========
+function toggleMultimodal() {
+    const checked = $('multimodalCheck').checked;
+    if (checked) {
+        $('multimodalModal').classList.add('active');
+    }
+}
+
+function closeMultimodal() {
+    $('multimodalModal').classList.remove('active');
+    $('multimodalCheck').checked = false;
+}
+
+function saveMultimodal() {
+    myTransportMode2 = $('transportMode2').value;
+    mode1Days = parseInt($('mode1Days').value);
+    mode2Days = parseInt($('mode2Days').value);
+
+    if (!myTransportMode2) {
+        showError('Sélectionnez un mode secondaire');
+        return;
+    }
+
+    if (mode1Days + mode2Days !== 5) {
+        showError('Le total doit faire 5 jours');
+        return;
+    }
+
+    localStorage.setItem('transportMode2', myTransportMode2);
+    localStorage.setItem('mode1Days', mode1Days);
+    localStorage.setItem('mode2Days', mode2Days);
+
+    $('multimodalModal').classList.remove('active');
+    showSuccess('✅ Modes multiples enregistrés');
+}
+
+// ========== GÉOCODAGE ==========
+async function geocode(location) {
+    try {
+        // NOTE SUR LA SCALABILITE : 
+        // Nominatim a un rate-limit strict (1req/sec).
+        // Pour un usage en grand groupe, envisager de passer sur une API pro (Mapbox/Geoapify)
+        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(location)}&addressdetails=1`;
+        const res = await fetch(url);
+        const data = await res.json();
+        if (!data || data.length === 0) throw new Error('Localisation non trouvée');
+
+        const firstResult = data[0];
+        return {
+            lat: parseFloat(firstResult.lat),
+            lon: parseFloat(firstResult.lon),
+            displayName: firstResult.display_name,
+            fullAddress: firstResult.display_name
+        };
+    } catch (error) {
+        throw new Error('Erreur de géocodage: ' + error.message);
+    }
+}
+
+function haversineKm(aLat, aLon, bLat, bLon) {
+    const R = 6371;
+    const dLat = (bLat - aLat) * Math.PI / 180;
+    const dLon = (bLon - aLon) * Math.PI / 180;
+    const A = Math.sin(dLat / 2) ** 2 + Math.cos(aLat * Math.PI / 180) * Math.cos(bLat * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+    return 2 * R * Math.atan2(Math.sqrt(A), Math.sqrt(1 - A));
+}
+
+// ========== GÉNÉRATION QR CODES ==========
+function genMyQRCode(targetElementId = 'qrcode') {
+    const qrcodeElement = $(targetElementId);
+    if (!qrcodeElement) return;
+
+    qrcodeElement.innerHTML = '';
+
+    const qrData = JSON.stringify({
+        id: myUniqueId,
+        lat: myCoords.lat,
+        lon: myCoords.lon,
+        transport: myTransportMode
+    });
+
+    try {
+        new QRCode(qrcodeElement, {
+            text: qrData,
+            width: 200,
+            height: 200,
+            colorDark: '#1E3A5F',
+            colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.H
+        });
+    } catch (error) {
+        console.error('Erreur QR:', error);
+    }
+}
+
+function genInviteQRCode() {
+    const inviteQrcode = $('inviteQrcode');
+    if (!inviteQrcode) return;
+
+    inviteQrcode.innerHTML = '';
+    const currentUrl = window.location.href;
+
+    try {
+        new QRCode(inviteQrcode, {
+            text: currentUrl,
+            width: 200,
+            height: 200,
+            colorDark: '#FF6B35',
+            colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.L
+        });
+    } catch (error) {
+        console.error('Erreur QR invitation:', error);
+    }
+}
+
+async function generateCompanyQR() {
+    const addressInput = $('companyAddressInput');
+    const address = addressInput.value.trim();
+
+    if (!address) {
+        showError('Entrez l\'adresse de l\'entreprise');
+        return;
+    }
+
+    try {
+        const res = await geocode(address);
+        companyCoords = { lat: res.lat, lon: res.lon };
+        companyAddress = address; // Stocke juste le nom court
+
+        localStorage.setItem('companyCoords', JSON.stringify(companyCoords));
+        localStorage.setItem('companyAddress', companyAddress);
+
+        const qrcodeElement = $('companyQrcode');
+        qrcodeElement.innerHTML = '';
+
+        // SOLUTION: QR code avec uniquement les coordonnées
+        const qrData = JSON.stringify({
+            type: 'company',
+            lat: companyCoords.lat,
+            lon: companyCoords.lon
+        });
+
+        new QRCode(qrcodeElement, {
+            text: qrData,
+            width: 256,
+            height: 256,
+            colorDark: '#1E3A5F',
+            colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.M // M au lieu de H pour économiser de l'espace
+        });
+
+        $('companyQRSection').style.display = 'block';
+        showSuccess('✅ QR code entreprise généré !');
+
+    } catch (error) {
+        showError('Erreur: ' + error.message);
+    }
+}
+
+// ========== NAVIGATION ==========
+function showStep(stepNumber) {
+    document.querySelectorAll('.step').forEach(step => step.classList.remove('active'));
+    document.querySelectorAll('.step-dot').forEach(dot => {
+        dot.classList.remove('active');
+    });
+
+    for (let i = 1; i < stepNumber; i++) {
+        const dot = $(`step${i}Dot`);
+        if (dot) dot.classList.add('completed');
+    }
+
+    const stepElement = $(`step${stepNumber}`);
+    const dotElement = $(`step${stepNumber}Dot`);
+
+    if (stepElement) stepElement.classList.add('active');
+    if (dotElement) dotElement.classList.add('active');
+
+    stopAllCameras();
+
+    if (stepNumber === 2) {
+        setTimeout(() => genMyQRCode('qrcode'), 100);
+        if ($('step2EmojiDisplay')) {
+            $('step2EmojiDisplay').textContent = myEmoji;
+        }
+    } else if (stepNumber === 3) {
+        initGame();
+        setTimeout(() => genMyQRCode('qrcodeStep3'), 100);
+    } else if (stepNumber === 4) {
+        setTimeout(() => genMyQRCode('qrcodeStep4'), 100);
+    } else if (stepNumber === 5) {
+        updateStep5Stats();
+    } else if (stepNumber === 6) {
+        initStep6Form();
+    }
+
+    window.scrollTo(0, 0);
+}
+
+function showInvitePage() {
+    document.querySelectorAll('.step').forEach(step => step.classList.remove('active'));
+    $('invitePage').classList.add('active');
+    genInviteQRCode();
+
+    // Timer countdown
+    let countdown = 30;
+    const timerDisplay = $('inviteTimer');
+
+    if (inviteCountdownInterval) {
+        clearInterval(inviteCountdownInterval);
+    }
+
+    inviteCountdownInterval = setInterval(() => {
+        countdown--;
+        timerDisplay.innerHTML = `⏱️ Retour automatique dans <strong>${countdown}s</strong>`;
+
+        if (countdown <= 10) {
+            timerDisplay.style.color = '#FF5722';
+        }
+
+        if (countdown <= 0) {
+            clearInterval(inviteCountdownInterval);
+            showStep(2);
+        }
+    }, 1000);
+
+    window.scrollTo(0, 0);
+}
+
+function extendInviteTimer() {
+    if (inviteCountdownInterval) {
+        // On ne peut pas vraiment "étendre" sans refaire toute la logique
+        // Solution simple : relancer le timer
+        clearInterval(inviteCountdownInterval);
+        showInvitePage();
+        showSuccess('⏱️ Temps prolongé de 30s !');
+    }
+}
+
+function showAdminPage() {
+    document.querySelectorAll('.step').forEach(step => step.classList.remove('active'));
+    $('adminPage').classList.add('active');
+    $('adminLogin').style.display = 'block';
+    $('adminPanel').style.display = 'none';
+    $('adminPassword').value = '';
+
+    // Pré-remplir l'URL si elle existe
+    if (googleScriptUrl) {
+        $('googleScriptUrl').value = googleScriptUrl;
+    }
+
+    window.scrollTo(0, 0);
+}
+
+function showCompanyScan() {
+    // ENVOYER LES PROPOSITIONS AVANT D'ALLER SCANNER L'ENTREPRISE
+    const alternativesText = Object.keys(selectedAlternatives).join(', ');
+    const prioritiesText = Object.entries(selectedAlternatives)
+        .filter(([name, priority]) => priority)
+        .map(([name, priority]) => `${name} (priorité ${priority})`)
+        .join(', ');
+    const contraintesText = selectedConstraints.join(', ');
+    const leviersText = selectedLevers.join(', ');
+
+    // Récupérer les valeurs des champs "Autre"
+    const altAutre = $('altAutre');
+    const conAutre = $('conAutre');
+    const levAutre = $('levAutre');
+
+    let finalAlternatives = alternativesText;
+    let finalContraintes = contraintesText;
+    let finalLevers = leviersText;
+
+    if (altAutre && !altAutre.disabled && altAutre.value.trim()) {
+        finalAlternatives += ` (Autre: ${altAutre.value.trim()})`;
+    }
+    if (conAutre && !conAutre.disabled && conAutre.value.trim()) {
+        finalContraintes += ` (Autre: ${conAutre.value.trim()})`;
+    }
+    if (levAutre && !levAutre.disabled && levAutre.value.trim()) {
+        finalLevers += ` (Autre: ${levAutre.value.trim()})`;
+    }
+
+    sendToGoogleSheets({
+        type: 'propositions',
+        participantId: myUniqueId,
+        emoji: myEmoji,
+        alternatives: finalAlternatives,
+        priorities: prioritiesText,
+        contraintes: finalContraintes,
+        leviers: finalLevers,
+        engagement: commitmentLevel
+    });
+
+    document.querySelectorAll('.step').forEach(step => step.classList.remove('active'));
+    $('companyScanPage').classList.add('active');
+    window.scrollTo(0, 0);
+}
+
+// ========== STEP 5 STATS ==========
+function updateStep5Stats() {
+    const total = participants.length + 1;
+    $('totalParticipants').textContent = total;
+
+    if (participants.length > 0) {
+        const avgDist = participants.reduce((sum, p) => sum + p.distance, 0) / participants.length;
+        $('avgDistance').textContent = avgDist.toFixed(1);
+    }
+}
+
+// ========== STEP 6 FORM ==========
+function initStep6Form() {
+    // Alternatives
+    const altList = $('alternativesList');
+    altList.innerHTML = '';
+    ALTERNATIVES.forEach((alt, i) => {
+        const div = document.createElement('div');
+        div.className = 'priority-selector';
+
+        // Vérifier si c'est "Autre (précisez)"
+        const isAutre = alt.includes('Autre');
+
+        div.innerHTML = `
+      <input type="checkbox" id="alt${i}" onchange="toggleAlternative(${i}, '${alt.replace(/'/g, "\\'")}')">
+      <label for="alt${i}">${alt}</label>
+      ${isAutre ? '<input type="text" id="altAutre" placeholder="Précisez..." style="flex: 1; margin: 0;" disabled>' : ''}
+      <select id="altPriority${i}" disabled>
+        <option value="">-</option>
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+      </select>
+    `;
+        altList.appendChild(div);
+    });
+
+    // Contraintes
+    const conList = $('constraintsList');
+    conList.innerHTML = '';
+    CONSTRAINTS.forEach((con, i) => {
+        const div = document.createElement('div');
+        div.className = 'checkbox-item';
+
+        const isAutre = con.includes('Autre');
+
+        div.innerHTML = `
+    <input type="checkbox" id="con${i}" onchange="toggleConstraint('${con.replace(/'/g, "\\'")}')">
+    <label for="con${i}">${con}</label>
+    ${isAutre ? '<input type="text" id="conAutre" placeholder="Précisez..." style="margin-left: 10px; flex: 1;" disabled>' : ''}
+  `;
+        conList.appendChild(div);
+    });
+
+    // Leviers
+    const levList = $('leversList');
+    levList.innerHTML = '';
+    LEVERS.forEach((lev, i) => {
+        const div = document.createElement('div');
+        div.className = 'checkbox-item';
+
+        const isAutre = lev.includes('Autre');
+
+        div.innerHTML = `
+    <input type="checkbox" id="lev${i}" onchange="toggleLever('${lev.replace(/'/g, "\\'")}')">
+    <label for="lev${i}">${lev}</label>
+    ${isAutre ? '<input type="text" id="levAutre" placeholder="Précisez..." style="margin-left: 10px; flex: 1;" disabled>' : ''}
+  `;
+        levList.appendChild(div);
+    });
+
+} // <--- J'AI CORRIGÉ TON BUG ICI (L'accolade manquante)
+
+function toggleAlternative(index, name) {
+    const checked = $(`alt${index}`).checked;
+    const prioritySelect = $(`altPriority${index}`);
+    const autreInput = $('altAutre');
+
+    if (checked) {
+        prioritySelect.disabled = false;
+        if (autreInput && name.includes('Autre')) {
+            autreInput.disabled = false;
+        }
+        selectedAlternatives[name] = '';
+
+        // Capturer la priorité quand elle change
+        prioritySelect.onchange = () => {
+            selectedAlternatives[name] = prioritySelect.value;
+        };
+    } else {
+        prioritySelect.disabled = true;
+        prioritySelect.value = '';
+        if (autreInput && name.includes('Autre')) {
+            autreInput.disabled = true;
+            autreInput.value = '';
+        }
+        delete selectedAlternatives[name];
+    }
+}
+
+function toggleConstraint(name) {
+    const index = selectedConstraints.indexOf(name);
+    const autreInput = $('conAutre');
+
+    if (index > -1) {
+        selectedConstraints.splice(index, 1);
+        if (autreInput && name.includes('Autre')) {
+            autreInput.disabled = true;
+            autreInput.value = '';
+        }
+    } else {
+        selectedConstraints.push(name);
+        if (autreInput && name.includes('Autre')) {
+            autreInput.disabled = false;
+        }
+    }
+}
+
+function toggleLever(name) {
+    const index = selectedLevers.indexOf(name);
+    const autreInput = $('levAutre');
+
+    if (index > -1) {
+        selectedLevers.splice(index, 1);
+        if (autreInput && name.includes('Autre')) {
+            autreInput.disabled = true;
+            autreInput.value = '';
+        }
+    } else {
+        selectedLevers.push(name);
+        if (autreInput && name.includes('Autre')) {
+            autreInput.disabled = false;
+        }
+    }
+}
+
+function updateCommitmentValue() {
+    commitmentLevel = parseInt($('commitmentRange').value);
+    $('commitmentValue').textContent = commitmentLevel;
+}
+
+// ========== CAMÉRA & SCAN ==========
+function stopAllCameras() {
+    scanning = false;
+
+    document.querySelectorAll('.camera-view').forEach(view => {
+        view.classList.remove('active');
+    });
+
+    if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+    }
+
+    const videos = ['video', 'gameVideo', 'companyVideo', 'positioningVideo'];
+    videos.forEach(videoId => {
+        const video = $(videoId);
+        if (video && video.srcObject) {
+            video.srcObject.getTracks().forEach(track => track.stop());
+            video.srcObject = null;
+        }
+    });
+
+    if (inviteCountdownInterval) {
+        clearInterval(inviteCountdownInterval);
+        inviteCountdownInterval = null;
+    }
+}
+
+function startScanLoop(type = 'normal') {
+    const videoId = type === 'game' ? 'gameVideo' :
+        type === 'company' ? 'companyVideo' :
+        type === 'positioning' ? 'positioningVideo' : 'video';
+    const canvasId = type === 'game' ? 'gameCanvas' :
+        type === 'company' ? 'companyCanvas' :
+        type === 'positioning' ? 'positioningCanvas' : 'canvas';
+    const cameraViewId = type === 'game' ? 'gameCameraView' :
+        type === 'company' ? 'companyCameraView' :
+        type === 'positioning' ? 'positioningCameraView' : 'cameraView';
+    const scanBtnId = type === 'game' ? 'gameScanBtn' :
+        type === 'positioning' ? 'positioningScanBtn' : 'scanBtn';
+
+    const video = $(videoId);
+    const canvas = $(canvasId);
+    const cameraView = $(cameraViewId);
+    const scanBtn = $(scanBtnId);
+
+    if (!video || !canvas) return;
+
+    scanning = true;
+    if (scanBtn) scanBtn.style.display = 'none';
+    if (cameraView) cameraView.classList.add('active');
+
+    const ctx = canvas.getContext('2d', {
+        willReadFrequently: true
+    });
+
+    navigator.mediaDevices.getUserMedia({
+        video: {
+            facingMode: 'environment'
+        }
+    }).then(stream => {
+        video.srcObject = stream;
+
+        video.onloadedmetadata = () => {
+            video.play().catch(e => console.warn('Play interrompu:', e.message));
+        };
+
+        const scan = () => {
+            if (!scanning) return;
+
+            if (video.readyState === video.HAVE_ENOUGH_DATA && video.videoWidth > 0) {
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+                const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                    inversionAttempts: 'attemptBoth',
+                });
+
+                if (code && code.data) {
+                    try {
+                        const parsedData = JSON.parse(code.data);
+
+                        if (type === 'company') {
+                            handleCompanyScan(parsedData);
+                            return;
+                        } else if (type === 'positioning') {
+                            handlePositioningScan(parsedData);
+                            return;
+                        } else if (parsedData.id && parsedData.lat && parsedData.lon) {
+                            let handled = false;
+                            if (type === 'game') {
+                                handled = handleGameScan(parsedData);
+                            } else {
+                                handled = addParticipant(parsedData);
+                            }
+
+                            if (handled) {
+                                stopAllCameras();
+                            }
+                            return;
+                        }
+                    } catch (e) {
+                        console.error('Erreur parsing:', e);
+                    }
+                }
+            }
+
+            animationFrameId = requestAnimationFrame(scan);
+        };
+
+        animationFrameId = requestAnimationFrame(scan);
+    }).catch(e => {
+        console.error('Erreur caméra:', e);
+        showError('Erreur caméra: ' + e.message);
+        stopAllCameras();
+    });
+}
+
+// ========== GESTION SCAN ENTREPRISE ==========
+function handleCompanyScan(data) {
+    if (data.type === 'company' && data.lat && data.lon) {
+        companyCoords = {
+            lat: data.lat,
+            lon: data.lon
+        };
+        companyAddress = 'Entreprise';
+
+        localStorage.setItem('companyCoords', JSON.stringify(companyCoords));
+        localStorage.setItem('companyAddress', companyAddress);
+
+        stopAllCameras();
+        showSuccess('✅ Entreprise scannée !');
+
+        // Calculer et envoyer la distance entreprise
+        if (myCoords) {
+            const distanceToCompany = haversineKm(myCoords.lat, myCoords.lon, companyCoords.lat, companyCoords.lon);
+            sendToGoogleSheets({
+                type: 'company_distance',
+                participantId: myUniqueId,
+                emoji: myEmoji,
+                distance: distanceToCompany
+            });
+        }
+
+        calculateAndShowReport();
+    }
+}
+
+// ========== GESTION SCAN POSITIONNEMENT ==========
+function handlePositioningScan(data) {
+    if (data.id && data.lat && data.lon) {
+        const distance = haversineKm(myCoords.lat, myCoords.lon, data.lat, data.lon);
+        showSuccess(`📍 Distance: ${distance.toFixed(1)} km • Vous pouvez scanner d'autres participants`);
+
+        // Arrêter la caméra et réafficher le bouton scan
+        stopAllCameras();
+        const scanBtn = $('positioningScanBtn');
+        if (scanBtn) {
+            scanBtn.style.display = 'block';
+        }
+
+        return true;
+    }
+    return false;
+}
+
+function calculateAndShowReport() {
+    if (!myCoords || !companyCoords) {
+        showError('Données manquantes pour le calcul');
+        return;
+    }
+
+    const distance = haversineKm(myCoords.lat, myCoords.lon, companyCoords.lat, companyCoords.lon) * 1.35;
+
+    let currentCO2 = 0;
+    if (mode1Days > 0 && mode2Days > 0) {
+        currentCO2 = (CO2_FACTORS[myTransportMode] * distance * 2 * mode1Days * 52) +
+            (CO2_FACTORS[myTransportMode2] * distance * 2 * mode2Days * 52);
+    } else {
+        currentCO2 = CO2_FACTORS[myTransportMode] * distance * 2 * 5 * 52;
+    }
+
+    const potentialSavings = currentCO2 * 0.3 * (commitmentLevel / 100);
+
+    $('co2Savings').textContent = Math.round(potentialSavings);
+
+    document.querySelectorAll('.step').forEach(step => step.classList.remove('active'));
+    $('reportPage').classList.add('active');
+}
+
+// ========== GESTION PARTICIPANTS ==========
+function addParticipant(data) {
+    const existing = participants.find(p => p.id === data.id);
+    if (existing) return false;
+
+    const distance = haversineKm(myCoords.lat, myCoords.lon, data.lat, data.lon);
+    const participant = {
+        id: data.id,
+        emoji: '👤',
+        lat: data.lat,
+        lon: data.lon,
+        distance,
+        transport: data.transport || '',
+        timestamp: Date.now()
+    };
+
+    participants.push(participant);
+    participants.sort((a, b) => a.distance - b.distance);
+
+    // Incrémenter le compteur de scans
+    scanCount++;
+    localStorage.setItem('scanCount', scanCount);
+
+    // ENVOI GOOGLE SHEETS - Type "scan"
+    sendToGoogleSheets({
+        type: 'scan',
+        scannerId: myUniqueId,
+        scannerEmoji: myEmoji,
+        scannedId: data.id,
+        scannedEmoji: data.emoji,
+        distance: distance,
+        step: 2,
+        totalScans: scanCount
+    });
+
+    updateProgress();
+    showSuccess(`✅ Scan ${participants.length}/${MIN_PARTICIPANTS_REQUIRED} ・ Distance: ${distance.toFixed(1)} km`);
+
+    // CHALLENGE SI MOINS DE 5KM
+    if (distance < 5) {
+        showRandomChallenge();
+    }
+
+    const goToStep3 = $('goToStep3');
+    if (goToStep3 && participants.length >= MIN_PARTICIPANTS_REQUIRED) {
+        goToStep3.disabled = false;
+    }
+
+    return true;
+}
+
+function showRandomChallenge() {
+    const randomChallenge = miniChallenges[Math.floor(Math.random() * miniChallenges.length)];
+    const challengeTitle = $('challengeTitle');
+    const challengeTask = $('challengeTask');
+    const challengeSection = $('challengeSection');
+    const continueChallengeBtn = $('continueChallengeBtn');
+
+    if (challengeTitle && challengeTask && challengeSection) {
+        challengeTitle.textContent = randomChallenge.icon + ' ' + randomChallenge.title;
+        challengeTask.textContent = randomChallenge.task;
+
+        continueChallengeBtn.onclick = function() {
+            challengeSection.style.display = 'none';
+            $('scanBtn').style.display = 'block';
+        };
+
+        challengeSection.style.display = 'block';
+        $('scanBtn').style.display = 'none';
+    }
+}
+
+function updateProgress() {
+    const scanCount = participants.length;
+    $('scanCount').textContent = scanCount;
+
+    const progress = Math.min((scanCount / 30) * 100, 100);
+    $('step2Progress').style.width = `${progress}%`;
+}
+
+// ========== JEU STEP 3 ==========
+function initGame() {
+    if (participants.length < MIN_PARTICIPANTS_REQUIRED) {
+        showError(`Vous devez scanner au moins ${MIN_PARTICIPANTS_REQUIRED} personne(s) !`);
+        setTimeout(() => showStep(2), 2000);
+        return;
+    }
+
+    gameTargets = participants.slice(0, 5);
+    scannedTargets = [];
+    attemptsLeft = 5;
+    score = 0;
+    gameActive = true;
+
+    updateGameDisplay();
+}
+
+function resetGame() {
+    initGame();
+}
+
+function updateGameDisplay() {
+    $('scoreBadge').textContent = `${score}/3`;
+    $('attemptsLeft').textContent = attemptsLeft;
+
+    const targetList = $('targetList');
+    targetList.innerHTML = '';
+
+    gameTargets.forEach((target, index) => {
+        const card = document.createElement('div');
+        card.className = 'participant-card';
+
+        if (scannedTargets.includes(target.id)) {
+            card.classList.add('scanned');
+        } else {
+            card.classList.add('target');
+        }
+
+        let medal = '';
+        if (index === 0) medal = '🥇 ';
+        else if (index === 1) medal = '🥈 ';
+        else if (index === 2) medal = '🥉 ';
+
+        card.innerHTML = `
+      <div style="display: flex; align-items: center;">
+        <div class="icon-badge">${target.emoji}</div>
+        <div>
+          <strong>${medal}Voisin ${index + 1}</strong><br>
+          <small>${target.distance.toFixed(1)} km</small>
+        </div>
+      </div>
+      <div class="distance-badge">${scannedTargets.includes(target.id) ? '✅' : '🎯'}</div>
+    `;
+        targetList.appendChild(card);
+    });
+
+    checkGameEnd();
+}
+
+function checkGameEnd() {
+    if (score >= 3 || attemptsLeft <= 0) {
+        gameActive = false;
+        const errors = (5 - attemptsLeft) - score;
+
+        let title = '';
+        if (errors === 0) title = '🎯 Expert du covoiturage !';
+        else if (errors <= 1) title = '🚗 Pro du covoiturage';
+        else if (errors <= 2) title = '👍 Bon partenaire';
+        else title = '😊 À retenter !';
+
+        $('gameResult').innerHTML = `
+      <div style="background: #ECFDF5; padding: 20px; border-radius: 12px; margin: 20px 0; text-align: center;">
+        <h3 style="color: #065F46;">${title}</h3>
+        <p>${score} voisins trouvés sur 3<br>${errors} erreur(s)</p>
+      </div>
+    `;
+
+        $('gameScanBtn').disabled = true;
+
+        // ENVOI GOOGLE SHEETS - Type "game_result"
+        sendToGoogleSheets({
+            type: 'game_result',
+            participantId: myUniqueId,
+            score: score,
+            attempts: 5 - attemptsLeft,
+            errors: errors,
+            title: title
+        });
+    }
+}
+
+function handleGameScan(data) {
+    if (!gameActive) return false;
+
+    const targetIndex = gameTargets.findIndex(target => target.id === data.id);
+
+    if (targetIndex !== -1) {
+        if (!scannedTargets.includes(data.id)) {
+            scannedTargets.push(data.id);
+            score++;
+            const distance = haversineKm(myCoords.lat, myCoords.lon, data.lat, data.lon);
+            showSuccess(`✅ Bravo ! Voisin trouvé (${distance.toFixed(1)} km)`);
+
+            // ENVOI GOOGLE SHEETS - Scan step 3
+            sendToGoogleSheets({
+                type: 'scan',
+                scannerId: myUniqueId,
+                scannedId: data.id,
+                distance: distance,
+                step: 3
+            });
+        } else {
+            showError("⚠️ Déjà scanné !");
+        }
+    } else {
+        showError("❌ Ce n'est pas un de vos 5 voisins !");
+    }
+
+    attemptsLeft--;
+    updateGameDisplay();
+    return true;
+}
+
+// ========== ADMIN ==========
+function adminLogin() {
+    const password = $('adminPassword').value;
+    const adminError = $('adminError');
+
+    if (password === ADMIN_PASSWORD) {
+        $('adminLogin').style.display = 'none';
+        $('adminPanel').style.display = 'block';
+        refreshAdminStats();
+        showSuccess('✅ Connecté en tant qu\'admin');
+    } else {
+        adminError.textContent = '❌ Mot de passe incorrect';
+        adminError.classList.add('show');
+        setTimeout(() => {
+            adminError.classList.remove('show');
+        }, 3000);
+    }
+}
+
+async function refreshAdminStats() {
+    // Essayer de récupérer depuis Google Sheets
+    let leaderboard = [];
+    const sheetData = await getFromGoogleSheets();
+
+    if (sheetData && sheetData.participants) {
+        // Utiliser les données du sheet
+        const allParticipants = sheetData.participants;
+        const total = allParticipants.length;
+        $('adminTotalUsers').textContent = total;
+
+        // Construire le classement depuis Google Sheets
+        const participantScans = {};
+
+        if (sheetData.scans) {
+            sheetData.scans.forEach(scan => {
+                const emoji = scan['Scanner Emoji'] || scan.scannerEmoji || scan.emoji || '👤';
+                if (emoji && emoji !== 'undefined') { // ← Filtrer les undefined
+                    if (!participantScans[emoji]) {
+                        participantScans[emoji] = 0;
+                    }
+                    participantScans[emoji]++;
+                }
+            });
+        }
+
+        leaderboard = Object.entries(participantScans)
+            .map(([emoji, count]) => ({
+                emoji,
+                count
+            }))
+            .sort((a, b) => b.count - a.count);
+
+        if (total > 1) {
+            // Calculer stats depuis sheet data
+            let totalDist = 0;
+            let count = 0;
+
+            allParticipants.forEach(p => {
+                if (p.distance) {
+                    totalDist += parseFloat(p.distance);
+                    count++;
+                }
+            });
+
+            if (count > 0) {
+                $('adminAvgDistance').textContent = (totalDist / count).toFixed(1) + ' km';
+            }
+
+            // Stats modes de transport
+            const transportCounts = {};
+            allParticipants.forEach(p => {
+                if (p.transport) {
+                    transportCounts[p.transport] = (transportCounts[p.transport] || 0) + 1;
+                }
+            });
+
+            let statsHTML = '<h4>Répartition modes de transport :</h4>';
+            Object.entries(transportCounts).forEach(([mode, count]) => {
+                statsHTML += `<p>${mode}: ${count} (${Math.round(count/total*100)}%)</p>`;
+            });
+
+            $('adminStats').innerHTML = statsHTML;
+        }
+    } else {
+        // Fallback sur localStorage
+        const total = participants.length + 1;
+        $('adminTotalUsers').textContent = total;
+
+        if (participants.length > 0) {
+            const avgDist = participants.reduce((sum, p) => sum + p.distance, 0) / participants.length;
+            $('adminAvgDistance').textContent = avgDist.toFixed(1) + ' km';
+        }
+
+        // Construire leaderboard local
+
+        const localScans = {};
+        localScans[myEmoji] = scanCount;
+        participants.forEach(p => {
+            if (!localScans[p.emoji]) {
+                localScans[p.emoji] = 0;
+            }
+        });
+
+        leaderboard = Object.entries(localScans)
+            .map(([emoji, count]) => ({
+                emoji,
+                count
+            }))
+            .sort((a, b) => b.count - a.count);
+
+        const transportCounts = {};
+        participants.forEach(p => {
+            if (p.transport) {
+                transportCounts[p.transport] = (transportCounts[p.transport] || 0) + 1;
+            }
+        });
+
+        let statsHTML = '<h4>Répartition modes de transport :</h4>';
+        Object.entries(transportCounts).forEach(([mode, count]) => {
+            statsHTML += `<p>${mode}: ${count} (${Math.round(count/total*100)}%)</p>`;
+        });
+
+        $('adminStats').innerHTML = statsHTML;
+    }
+
+    // Afficher le classement
+    displayLeaderboard(leaderboard);
+}
+
+function displayLeaderboard(leaderboard) {
+    const leaderboardDiv = $('leaderboard');
+    leaderboardDiv.innerHTML = '';
+
+    if (leaderboard.length === 0) {
+        leaderboardDiv.innerHTML = '<p style="text-align: center; color: #6B7280;">Aucun participant pour le moment</p>';
+        return;
+    }
+
+    leaderboard.slice(0, 10).forEach((item, index) => {
+        const div = document.createElement('div');
+        div.className = 'leaderboard-item';
+
+        if (index === 0) div.classList.add('first');
+        else if (index === 1) div.classList.add('second');
+        else if (index === 2) div.classList.add('third');
+
+        let medal = '';
+        if (index === 0) medal = '🥇';
+        else if (index === 1) medal = '🥈';
+        else if (index === 2) medal = '🥉';
+        else medal = `${index + 1}.`;
+
+        div.innerHTML = `
+      <div style="display: flex; align-items: center;">
+        <span style="font-size: 1.5rem; margin-right: 10px;">${medal}</span>
+        <span class="leaderboard-emoji">${item.emoji}</span>
+      </div>
+      <div class="leaderboard-score">${item.count} scans</div>
+    `;
+
+        leaderboardDiv.appendChild(div);
+    });
+}
+
+function saveGoogleScriptUrl() {
+    const url = $('googleScriptUrl').value.trim();
+    if (!url) {
+        showError('Entrez l\'URL du script');
+        return;
+    }
+
+    googleScriptUrl = url;
+    localStorage.setItem('googleScriptUrl', url);
+
+    $('scriptUrlStatus').innerHTML = '<span style="color: #06D6A0;">✅ URL enregistrée avec succès</span>';
+    showSuccess('✅ URL Google Sheets configurée !');
+}
+
+function resetAllData() {
+    if (!confirm('⚠️ Réinitialiser TOUTES les données ?')) return;
+
+    participants = [];
+    gameTargets = [];
+    scannedTargets = [];
+    scanCount = 0;
+    localStorage.clear();
+
+    // Régénérer ID et emoji
+    myUniqueId = generateUniqueId();
+    myEmoji = generateEmojiPseudo();
+    localStorage.setItem('myUniqueId', myUniqueId);
+    localStorage.setItem('myEmoji', myEmoji);
+
+    showSuccess('🗑️ Données réinitialisées');
+    refreshAdminStats();
+}
+
+// ========== EXPORTS ==========
+function generatePDF() {
+    showSuccess('📥 Génération du PDF...');
+
+    setTimeout(() => {
+        const content = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Rapport Mobilité - GoDifferent</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 40px; }
+    h1 { color: #1E3A5F; }
+    h2 { color: #FF6B35; margin-top: 30px; }
+    .section { margin: 20px 0; padding: 20px; border-left: 4px solid #06D6A0; background: #F8F9FA; }
+  </style>
+</head>
+<body>
+  <h1>🚀 Rapport Mobilité - GoDifferent</h1>
+  
+  <div class="section">
+    <h2>📍 Votre profil</h2>
+    <p class="emoji">${myEmoji}</p>
+    <p><strong>Nombre de participants scannés :</strong> ${scanCount}</p>
+    <p><strong>Adresse :</strong> ${myFullAddress}</p>
+<p><strong>Mode principal :</strong> ${translateTransport(myTransportMode)}</p>
+${myTransportMode2 ? `<p><strong>Mode secondaire :</strong> ${translateTransport(myTransportMode2)} (${mode2Days}j/semaine)</p>` : ''}
+<p><strong>Heure de départ :</strong> ${myDepartureTime}</p>
+  </div>
+  
+  <div class="section">
+    <h2>👥 Vos voisins proches</h2>
+    <p>${participants.slice(0, 5).length} participants habitent à proximité</p>
+    ${participants.slice(0, 5).length > 0 ? `<p>Distance max : ${participants[Math.min(4, participants.length - 1)]?.distance.toFixed(1)} km</p>` : ''}
+  </div>
+  
+  <div class="section">
+    <h2>💡 Vos propositions</h2>
+    <p><strong>Alternatives envisagées :</strong><br>${Object.keys(selectedAlternatives).join(', ') || 'Aucune'}</p>
+    <p><strong>Vos contraintes :</strong><br>${selectedConstraints.join(', ') || 'Aucune'}</p>
+    <p><strong>Leviers souhaités :</strong><br>${selectedLevers.join(', ') || 'Aucun'}</p>
+  </div>
+  
+  <div class="section">
+    <h2>📊 Votre engagement</h2>
+    <p><strong>Probabilité d'action :</strong> ${commitmentLevel}%</p>
+  </div>
+  
+  <div class="section">
+    <h2>💚 Économies potentielles</h2>
+    <p style="font-size: 2rem; color: #06D6A0; font-weight: bold;">${$('co2Savings').textContent} kg CO2/an</p>
+    <p style="font-size: 0.9rem; color: #666;">Soit l'équivalent de ${Math.round($('co2Savings').textContent / 2.5)} arbres plantés</p>
+  </div>
+  
+  <footer style="margin-top: 50px; text-align: center; color: #666; font-size: 0.9rem;">
+    <p>Rapport généré le ${new Date().toLocaleDateString('fr-FR')}</p>
+    <p>GoDifferent - Atelier Mobilité Durable</p>
+    <p>Votre identifiant RGPD : ${myEmoji}</p>
+  </footer>
+</body>
+</html>
+        `;
+
+        const blob = new Blob([content], {
+            type: 'text/html'
+        });
+        const url = URL.createObjectURL(blob);
+
+        // Détection mobile
+        if (/Android|iPhone|iPad/i.test(navigator.userAgent)) {
+            // Sur mobile : ouvrir dans nouvel onglet
+            window.open(url, '_blank');
+            showSuccess('✅ Rapport ouvert dans un nouvel onglet !');
+        } else {
+            // Sur PC : télécharger
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `rapport-mobilite-${myEmoji.replace(/[^\w]/g, '')}-${Date.now()}.html`;
+            a.click();
+            showSuccess('✅ Rapport téléchargé !');
+        }
+    }, 1000);
+}
+
+async function exportExcel() {
+    // Essayer de récupérer depuis Google Sheets
+    const sheetData = await getFromGoogleSheets();
+
+    let participantsData, scansData, resultsData;
+
+    if (sheetData) {
+        participantsData = sheetData.participants || [];
+        scansData = sheetData.scans || [];
+        resultsData = sheetData.results || [];
+    } else {
+        // Fallback localStorage
+        participantsData = participants.map(p => ({
+            Emoji: p.emoji,
+            ID: p.id.substring(0, 8),
+            Latitude: p.lat,
+            Longitude: p.lon,
+            'Distance (km)': p.distance.toFixed(2),
+            'Mode transport': p.transport,
+            Emoji: p.emoji
+        }));
+
+        scansData = [{
+            Emoji: myEmoji,
+            ID: myUniqueId.substring(0, 8),
+            'Nb scans': participants.length
+        }];
+
+        resultsData = [{
+            Emoji: myEmoji,
+            ID: myUniqueId.substring(0, 8),
+            Score: score,
+            Tentatives: 5 - attemptsLeft
+        }];
+    }
+
+    const wb = XLSX.utils.book_new();
+    const ws1 = XLSX.utils.json_to_sheet(participantsData);
+    const ws2 = XLSX.utils.json_to_sheet(scansData);
+    const ws3 = XLSX.utils.json_to_sheet(resultsData);
+
+    XLSX.utils.book_append_sheet(wb, ws1, 'Participants');
+    XLSX.utils.book_append_sheet(wb, ws2, 'Scans');
+    XLSX.utils.book_append_sheet(wb, ws3, 'Résultats');
+
+    XLSX.writeFile(wb, `atelier-mobilite-${Date.now()}.xlsx`);
+    showSuccess('📊 Excel exporté !');
+
+}
+
+// ========== INITIALISATION ==========
+document.addEventListener('DOMContentLoaded', function() {
+    // Vérification Date (Protection IP)
+    if (new Date() > new Date(APP_CONFIG.EXPIRATION_DATE)) {
+        document.body.innerHTML = '<h1 style="color:#1E3A5F;text-align:center;margin-top:50px;">Session Expirée. Contactez l\'organisateur.</h1>';
+        return;
+    }
+
+    // Réinitialiser les données de session au rechargement (mais garder l'identité)
+    if (!sessionStorage.getItem('sessionActive')) {
+        resetSessionData();
+        sessionStorage.setItem('sessionActive', 'true');
+    }
+
+    checkRGPDStatus();
+    restoreUserData();
+
+    // Afficher l'emoji si déjà généré
+    if (myEmoji && $('myEmojiDisplay')) {
+        $('myEmojiDisplay').textContent = myEmoji;
+    }
+
+    const saveLocationBtn = $('saveLocation');
+    if (saveLocationBtn) {
+        saveLocationBtn.addEventListener('click', async () => {
+            const userAddress = $('userAddress');
+            const transportMode = $('transportMode');
+            const departureTime = $('departureTime');
+
+            const location = userAddress.value.trim();
+            const transport = transportMode.value;
+            const departure = departureTime.value;
+
+            if (!location) {
+                showError('Entrez votre adresse');
+                return;
+            }
+
+            if (!transport) {
+                showError('Sélectionnez votre mode de transport');
+                return;
+            }
+
+            try {
+                const res = await geocode(location);
+
+                if (!myUniqueId) {
+                    myUniqueId = localStorage.getItem('myUniqueId');
+                    if (!myUniqueId) {
+                        myUniqueId = generateUniqueId();
+                        localStorage.setItem('myUniqueId', myUniqueId);
+                    }
+                }
+
+                if (!myEmoji) {
+                    myEmoji = localStorage.getItem('myEmoji');
+                    if (!myEmoji) {
+                        myEmoji = generateEmojiPseudo();
+                        localStorage.setItem('myEmoji', myEmoji);
+                    }
+                }
+
+                myCoords = {
+                    lat: res.lat,
+                    lon: res.lon
+                };
+                myFullAddress = res.fullAddress;
+                myTransportMode = transport;
+                myDepartureTime = departure;
+
+                localStorage.setItem('userCoords', JSON.stringify(myCoords));
+                localStorage.setItem('transportMode', transport);
+                localStorage.setItem('departureTime', departure);
+                localStorage.setItem('fullAddress', myFullAddress);
+
+
+                sendToGoogleSheets({
+                    type: 'participant',
+                    id: myUniqueId,
+                    emoji: myEmoji,
+                    lat: myCoords.lat,
+                    lon: myCoords.lon,
+                    address: myFullAddress,
+                    transport: myTransportMode,
+                    transportMode2: myTransportMode2,
+                    mode1Days: mode1Days,
+                    mode2Days: mode2Days,
+                    departureTime: myDepartureTime
+                });
+
+                $('locationSection').style.display = 'none';
+                $('afterLocationSection').style.display = 'block';
+                $('detectedAddress').textContent = res.fullAddress;
+                $('myEmojiDisplay').textContent = myEmoji;
+
+                genMyQRCode();
+                showSuccess('✅ Localisation enregistrée !');
+
+            } catch (e) {
+                showError('Erreur: ' + e.message);
+            }
+        });
+    }
+});
+
+window.addEventListener('beforeunload', stopAllCameras);
