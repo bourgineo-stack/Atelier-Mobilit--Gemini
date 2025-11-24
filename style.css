@@ -50,7 +50,7 @@ header {
     margin-bottom: 20px;
 }
 
-.brand { font-weight: 800; font-size: 1.2rem; color: var(--accent); }
+.brand-logo { max-height: 40px; width: auto; } /* LOGO CORRIGÉ */
 
 .step-indicator { display: flex; gap: 5px; }
 .step-dot {
@@ -128,20 +128,24 @@ button:active { transform: scale(0.98); }
     border-left: 3px solid var(--accent);
 }
 
+/* CENTRAGE QR CODES CORRIGÉ */
 .qr-wrapper {
     background: white;
     padding: 15px;
     border-radius: 15px;
-    display: inline-block;
-    margin: 0 auto 20px;
-    text-align: center;
+    display: flex;
+    justify-content: center;
+    margin: 20px auto;
+    max-width: 230px;
 }
 .qr-wrapper-small {
     background: white;
     padding: 10px;
     border-radius: 10px;
-    display: inline-block;
+    display: flex;
+    justify-content: center;
     margin: 10px auto;
+    max-width: 230px;
 }
 
 /* Caméra */
@@ -192,12 +196,14 @@ video { width: 100%; height: 100%; object-fit: cover; }
 .stat-number { font-size: 1.8rem; font-weight: 700; color: var(--primary); }
 
 /* Formulaire */
+.checkbox-item-wrapper { margin-bottom: 10px; } /* Wrapper pour input autre */
 .checkbox-item {
     display: flex; align-items: center; padding: 10px;
-    background: rgba(255,255,255,0.05); border-radius: 8px; margin-bottom: 8px; cursor: pointer;
+    background: rgba(255,255,255,0.05); border-radius: 8px; cursor: pointer;
 }
 .checkbox-item:hover { background: rgba(255,255,255,0.1); }
 .checkbox-item input { width: auto; margin: 0 10px 0 0; }
+.other-input { background: rgba(0,0,0,0.5); border: 1px solid var(--glass-border); padding: 8px; border-radius: 5px; color: white; }
 
 .co2-savings {
     background: linear-gradient(135deg, #065f46, #064e3b);
