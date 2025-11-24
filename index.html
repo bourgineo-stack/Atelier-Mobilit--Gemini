@@ -2,29 +2,22 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Atelier Mobilité - Next Gen</title>
+  <title>Atelier Mobilité</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
-  <!-- Police moderne Outfit -->
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
-  
-  <!-- CSS -->
   <link rel="stylesheet" href="style.css">
-  
-  <!-- Bibliothèques -->
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 
-  <!-- Fond animé -->
   <div class="background-animation"></div>
 
   <div class="container">
     
-    <!-- Header -->
     <header>
-        <img src="image.png" alt="GoDifferent" class="brand-logo">
+        <img src="image.png" alt="Logo" class="brand-logo">
         <div class="step-indicator">
             <div class="step-dot active" id="step1Dot">1</div>
             <div class="step-dot" id="step2Dot">2</div>
@@ -37,376 +30,173 @@
 
     <!-- Notice RGPD -->
     <div id="rgpdNotice" class="card glass-effect" style="border-left: 4px solid #10b981;">
-      <p style="font-size: 0.9em; margin-bottom: 15px; opacity: 0.9;">
-        ℹ️ Vos données sont stockées temporairement (7 jours max).
-      </p>
-      <button class="btn-primary" onclick="acceptRGPD()">✅ J'accepte et je continue</button>
+      <p style="font-size: 0.9em; margin-bottom: 15px;">ℹ️ Vos données sont stockées localement (7 jours max).</p>
+      <button class="btn-primary" onclick="acceptRGPD()">✅ J'accepte</button>
     </div>
 
-    <!-- Étape 1 : Configuration -->
+    <!-- Step 1: Config -->
     <div id="step1" class="step active">
       <div class="card glass-effect">
         <h1>🚀 Bienvenue !</h1>
-        
         <div id="loginSection">
-            <p class="subtitle">Entrez le code de l'atelier pour commencer.</p>
+            <p class="subtitle">Entrez le code de l'atelier.</p>
             <input type="text" id="accessCodeInput" placeholder="Code d'accès" />
             <button class="btn-primary" onclick="checkAccessCode()">Valider</button>
-            <div id="accessError" class="error-msg"></div>
+            <div class="error-msg"></div>
         </div>
-        
         <div id="locationSection" style="display: none;">
-          <h3>📍 Votre profil</h3>
-          
-          <div class="input-group">
-            <label>Adresse complète</label>
-            <input id="userAddress" placeholder="Ex: 10 rue de la Liberté, Dijon" />
-          </div>
-          
-          <div class="input-group">
-            <label>Mode principal</label>
+          <h3>📍 Profil</h3>
+          <div class="input-group"><label>Adresse</label><input id="userAddress" placeholder="Ex: 10 rue de la Liberté" /></div>
+          <div class="input-group"><label>Mode</label>
             <select id="transportMode">
                 <option value="">-- Choisir --</option>
                 <option value="car-thermal">🚗 Voiture thermique</option>
-                <option value="car-electric">⚡ Voiture électrique</option>
+                <option value="car-electric">⚡ Voiture élec</option>
                 <option value="carpool">🚙 Covoiturage</option>
                 <option value="train">🚆 Train/RER</option>
                 <option value="bus">🚌 Bus/Tram</option>
                 <option value="bike">🚲 Vélo</option>
-                <option value="ebike">🚴 Vélo électrique</option>
+                <option value="ebike">🚴 Vélo élec</option>
                 <option value="walk">🚶 Marche</option>
-                <option value="remote">💻 Télétravail</option>
             </select>
           </div>
-          
-          <div class="input-group">
-            <label>Heure de départ</label>
-            <input type="time" id="departureTime" value="07:30" />
-          </div>
-          
-          <div style="text-align: center; margin: 15px 0;">
-            <label class="checkbox-item" style="background:transparent;">
-              <input type="checkbox" id="multimodalCheck" onchange="toggleMultimodal()">
-              <span>J'alterne entre plusieurs modes</span>
-            </label>
-          </div>
-          
-          <button class="btn-primary" id="saveLocation">Valider ma localisation</button>
+          <div class="input-group"><label>Départ</label><input type="time" id="departureTime" value="07:30" /></div>
+          <div style="text-align:center; margin:15px 0;"><label class="checkbox-item"><input type="checkbox" id="multimodalCheck" onchange="toggleMultimodal()"> Modes multiples</label></div>
+          <button class="btn-primary" id="saveLocation">Valider</button>
         </div>
-
         <div id="afterLocationSection" style="display: none;">
-          <div class="success-msg">✅ Profil enregistré !</div>
-          
-          <div class="emoji-display">
-            <p>Votre pseudo :</p>
-            <div id="myEmojiDisplay" style="font-size: 4rem; animation: bounce 2s infinite;"></div>
-          </div>
-          
-          <div class="info-box">
-            <strong>📍 Adresse :</strong> <span id="detectedAddress"></span>
-          </div>
-
+          <div class="success-msg">✅ Enregistré !</div>
+          <div class="emoji-display"><div id="myEmojiDisplay" style="font-size: 4rem;"></div></div>
           <button class="btn-secondary" onclick="showInvitePage()">📨 Inviter</button>
-          <button class="btn-primary" onclick="showStep(2)">Commencer 🎮</button>
+          <button class="btn-primary" onclick="showStep(2)">Suivant ➡</button>
         </div>
       </div>
     </div>
 
-    <!-- Étape 2 : Rencontres -->
+    <!-- Step 2: Rencontres -->
     <div id="step2" class="step">
       <div class="card glass-effect">
         <h2>🤝 Rencontres</h2>
-        <p class="subtitle">Scannez les autres participants.</p>
-        
-        <div class="qr-wrapper">
-            <div id="qrcode"></div>
-        </div>
-
-        <div class="camera-container" id="cameraView">
-            <video id="video" autoplay playsinline muted></video>
-            <div class="scan-overlay"></div>
-        </div>
-        <button class="btn-outline" id="stopCamBtn" style="display:none;" onclick="stopAllCameras()">🛑 Arrêter caméra</button>
-
+        <div class="qr-wrapper"><div id="qrcode"></div></div>
+        <div class="camera-container" id="cameraView"><video id="video" autoplay playsinline muted></video><div class="scan-overlay"></div></div>
+        <button class="btn-outline" id="stopCamBtn" style="display:none;" onclick="stopAllCameras()">🛑 Arrêter</button>
         <button class="btn-primary" id="scanBtn" onclick="startScanLoop('normal')">📱 Scanner</button>
         
-        <div id="scanResult"></div>
+        <div id="challengeSection" style="display:none; margin-top:15px;">
+            <div class="feedback-card"><h3 id="challengeTitle"></h3><p id="challengeTask"></p><button class="btn-secondary" id="continueChallengeBtn">OK</button></div>
+        </div>
         
-        <!-- Challenge dynamique -->
-        <div id="challengeSection" style="display: none;">
-          <div class="feedback-card">
-            <div style="font-size: 1.5rem;" id="challengeTitle"></div>
-            <p id="challengeTask" style="margin: 10px 0;"></p>
-            <button class="btn-secondary" id="continueChallengeBtn">✅ C'est fait !</button>
-          </div>
-        </div>
-
-        <div class="progress-container">
-            <div class="progress-bar"><div class="progress-fill" id="step2Progress" style="width: 0%"></div></div>
-            <p style="text-align: center; font-size: 0.8rem;">Scans : <span id="scanCount">0</span></p>
-        </div>
-
-        <div class="navigation-buttons">
-          <button class="btn-outline" onclick="showStep(1)">⬅️ Retour</button>
-          <button class="btn-primary" onclick="showStep(3)" id="goToStep3" disabled>➡️ Suivant</button>
-        </div>
+        <div class="progress-container"><div class="progress-bar"><div class="progress-fill" id="step2Progress" style="width:0%"></div></div><p style="text-align:center;">Scans : <span id="scanCount">0</span></p></div>
+        <div class="navigation-buttons"><button class="btn-outline" onclick="showStep(1)">Retour</button><button class="btn-primary" id="goToStep3" disabled onclick="showStep(3)">Suivant</button></div>
       </div>
     </div>
 
-    <!-- Étape 3 : Défi voisins -->
+    <!-- Step 3: Voisins -->
     <div id="step3" class="step">
       <div class="card glass-effect">
-        <h2>🎯 Vos Voisins</h2>
-        
-        <div class="info-box">
-          <p><strong>Mission :</strong> Scannez 3 de vos 5 voisins les plus proches.</p>
-        </div>
-        
-        <div class="qr-wrapper-small">
-            <div id="qrcodeStep3"></div>
-        </div>
-
-        <div class="game-header">
-          <div class="score-box">
-              <span class="score-label">Trouvés</span>
-              <span class="score-val" id="scoreBadge">0/3</span>
-          </div>
-          <div class="score-box">
-              <span class="score-label">Essais</span>
-              <span class="score-val" id="attemptsLeft">5</span>
-          </div>
-        </div>
-
-        <h3>Cibles potentielles :</h3>
+        <h2>🎯 Voisins</h2>
+        <div class="qr-wrapper-small"><div id="qrcodeStep3"></div></div>
+        <div class="game-header"><div class="score-box"><span class="score-val" id="scoreBadge">0/3</span></div><div class="score-box"><span class="score-val" id="attemptsLeft">5</span></div></div>
         <div id="targetList"></div>
-
-        <div class="camera-container" id="gameCameraView" style="display:none;">
-            <video id="gameVideo" autoplay playsinline muted></video>
-            <div class="scan-overlay"></div>
-        </div>
+        <div class="camera-container" id="gameCameraView" style="display:none;"><video id="gameVideo" autoplay playsinline muted></video></div>
         <button class="btn-outline" id="stopGameCamBtn" style="display:none;" onclick="stopAllCameras()">🛑 Arrêter</button>
-
-        <button class="btn-primary" id="gameScanBtn" onclick="startScanLoop('game')">📱 Scanner un voisin</button>
+        <button class="btn-primary" id="gameScanBtn" onclick="startScanLoop('game')">📱 Scanner Voisin</button>
         <div id="gameResult"></div>
-
-        <div class="navigation-buttons">
-          <button class="btn-outline" onclick="showStep(2)">⬅️ Retour</button>
-          <button class="btn-secondary" onclick="resetGame()">🔄 Retry</button>
-          <button class="btn-primary" onclick="showStep(4)">➡️ Suite</button>
-        </div>
+        <div class="navigation-buttons"><button class="btn-outline" onclick="showStep(2)">Retour</button><button class="btn-primary" onclick="showStep(4)">Suivant</button></div>
       </div>
     </div>
 
-    <!-- Étape 4 : Positionnement -->
+    <!-- Step 4: Positionnement -->
     <div id="step4" class="step">
       <div class="card glass-effect">
-        <h2>🗺️ Positionnement</h2>
-        <div class="info-box">
-            <p>Scannez les autres pour trianguler votre position dans la salle.</p>
-        </div>
-        
+        <h2>🗺️ Position</h2>
+        <p>Scannez pour trianguler.</p>
         <div class="qr-wrapper-small"><div id="qrcodeStep4"></div></div>
-        
-        <div class="camera-container" id="positioningCameraView" style="display:none;">
-            <video id="positioningVideo" autoplay playsinline muted></video>
-            <div class="scan-overlay"></div>
-        </div>
+        <div class="camera-container" id="positioningCameraView" style="display:none;"><video id="positioningVideo" autoplay playsinline muted></video></div>
         <button class="btn-outline" id="stopPosCamBtn" style="display:none;" onclick="stopAllCameras()">🛑 Arrêter</button>
-        
-        <button class="btn-primary" id="positioningScanBtn" onclick="startScanLoop('positioning')">📱 Scanner un participant</button>
-        <div id="positioningScanResult"></div>
-        
-        <div class="navigation-buttons">
-          <button class="btn-outline" onclick="showStep(3)">⬅️ Retour</button>
-          <button class="btn-primary" onclick="showStep(5)">✅ Je suis placé</button>
-        </div>
+        <button class="btn-primary" id="positioningScanBtn" onclick="startScanLoop('positioning')">📱 Scanner</button>
+        <div class="navigation-buttons"><button class="btn-outline" onclick="showStep(3)">Retour</button><button class="btn-primary" onclick="showStep(5)">Suivant</button></div>
       </div>
     </div>
 
-    <!-- Étape 5 : Pelotes -->
+    <!-- Step 5: Pelotes -->
     <div id="step5" class="step">
       <div class="card glass-effect">
-        <h2>🧶 Les Pelotes</h2>
-        <div class="info-box" style="text-align:left;">
-          <h3>Instructions :</h3>
-          <ul style="margin-left:20px;">
-            <li>🟡 Voiture | 🔵 Vélo/Marche | 🌸 TC</li>
-            <li>Déroulez votre pelote jusqu'au centre !</li>
-          </ul>
-        </div>
-        
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-number" id="totalParticipants">0</div>
-            <div class="stat-label">Participants</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-number" id="avgDistance">0</div>
-            <div class="stat-label">Km Moy.</div>
-          </div>
-        </div>
-        
-        <!-- Placeholder Image for Pelotes Instruction (Visual Cue) -->
-        <div style="text-align:center; margin:20px 0; opacity:0.5;">
-            
-            <p style="font-size:0.8em;">Exemple de visualisation</p>
-        </div>
-        
-        <div class="navigation-buttons">
-          <button class="btn-outline" onclick="showStep(4)">⬅️ Retour</button>
-          <button class="btn-primary" onclick="showStep(6)">➡️ Propositions</button>
-        </div>
+        <h2>🧶 Pelotes</h2>
+        <div class="info-box"><ul><li>🟡 Voiture</li><li>🔵 Vélo/Marche</li><li>🌸 TC</li></ul></div>
+        <div class="stats-grid"><div class="stat-card"><div class="stat-number" id="totalParticipants">0</div>Joueurs</div><div class="stat-card"><div class="stat-number" id="avgDistance">0</div>Km Moy.</div></div>
+        <div class="navigation-buttons"><button class="btn-outline" onclick="showStep(4)">Retour</button><button class="btn-primary" onclick="showStep(6)">Suivant</button></div>
       </div>
     </div>
 
-    <!-- Étape 6 : Propositions -->
+    <!-- Step 6: Propositions -->
     <div id="step6" class="step">
       <div class="card glass-effect">
-        <h2>💡 Propositions</h2>
-        <p class="subtitle">Quelles alternatives testeriez-vous ?</p>
-        
-        <h3>🚀 Alternatives</h3>
-        <div id="alternativesList"></div>
-        
-        <h3 style="margin-top:20px;">⚠️ Contraintes</h3>
-        <div id="constraintsList"></div>
-        
-        <h3 style="margin-top:20px;">🔓 Leviers</h3>
-        <div id="leversList"></div>
-        
-        <h3 style="margin-top:20px;">📊 Engagement</h3>
-        <div class="range-container">
-          <input type="range" id="commitmentRange" min="0" max="100" value="80" oninput="updateCommitmentValue()">
-          <div class="range-value"><span id="commitmentValue">80</span>%</div>
-        </div>
-        
-        <button class="btn-primary" onclick="showCompanyScan()">➡️ Générer mon rapport</button>
-        <div class="navigation-buttons"><button class="btn-outline" onclick="showStep(5)">⬅️ Retour</button></div>
+        <h2>💡 Idées</h2>
+        <h3>Alternatives</h3><div id="alternativesList"></div>
+        <h3 style="margin-top:15px;">Contraintes</h3><div id="constraintsList"></div>
+        <h3 style="margin-top:15px;">Leviers</h3><div id="leversList"></div>
+        <h3 style="margin-top:15px;">Engagement</h3>
+        <div class="range-container"><input type="range" id="commitmentRange" value="80" oninput="updateCommitmentValue()"><div class="range-value"><span id="commitmentValue">80</span>%</div></div>
+        <button class="btn-primary" onclick="showCompanyScan()">Générer Rapport</button>
       </div>
     </div>
 
     <!-- Scan Entreprise -->
     <div id="companyScanPage" class="step">
       <div class="card glass-effect">
-        <h2>🏢 Dernière étape</h2>
-        <p>Scannez le QR code "Entreprise" affiché par l'animateur.</p>
-        
-        <div class="camera-container" id="companyCameraView" style="display:none;">
-            <video id="companyVideo" autoplay playsinline muted></video>
-            <div class="scan-overlay"></div>
-        </div>
-        <button class="btn-outline" id="stopCompCamBtn" style="display:none;" onclick="stopAllCameras()">🛑 Arrêter</button>
-
-        <button class="btn-primary" onclick="startScanLoop('company')">📱 Scanner le QR</button>
-        <div class="navigation-buttons"><button class="btn-outline" onclick="showStep(6)">⬅️ Retour</button></div>
+        <h2>🏢 Final</h2>
+        <p>Scannez le QR Entreprise.</p>
+        <div class="camera-container" id="companyCameraView" style="display:none;"><video id="companyVideo" autoplay playsinline muted></video></div>
+        <button class="btn-primary" onclick="startScanLoop('company')">Scanner QR</button>
       </div>
     </div>
 
     <!-- Rapport -->
     <div id="reportPage" class="step">
       <div class="card glass-effect">
-        <h2>🎉 Résultat</h2>
-        
-        <div class="co2-savings">
-          <p style="opacity:0.8;">Gain potentiel</p>
-          <div class="co2-number" id="co2Savings">0</div>
-          <p>kg CO2 / an</p>
-        </div>
-        
-        <div class="info-box">
-          <button class="btn-primary" onclick="generatePDF()">📥 Télécharger mon PDF</button>
-        </div>
-        <div class="navigation-buttons"><button class="btn-outline" onclick="showStep(6)">⬅️ Retour</button></div>
+        <h2>🎉 Bilan</h2>
+        <div class="co2-savings"><p>Gain potentiel</p><div class="co2-number" id="co2Savings">0</div>kg CO2/an</div>
+        <button class="btn-primary" onclick="generatePDF()">📄 Page Imprimable</button>
+        <div class="navigation-buttons"><button class="btn-outline" onclick="showStep(6)">Retour</button></div>
       </div>
     </div>
 
-    <!-- Admin & Autres -->
-    <div id="invitePage" class="step">
-        <div class="card glass-effect">
-            <h2>📨 Inviter</h2>
-            <div id="inviteTimer" class="invite-timer"></div>
-            <div class="qr-wrapper"><div id="inviteQrcode"></div></div>
-            <div class="navigation-buttons">
-                <button class="btn-secondary" onclick="extendInviteTimer()">+30s</button>
-                <button class="btn-outline" onclick="showStep(1)">Retour</button>
-            </div>
-        </div>
-    </div>
-
+    <!-- Admin -->
     <div id="adminPage" class="step">
       <div class="card glass-effect">
         <h2>🔐 Admin</h2>
-        <div id="adminLogin">
-          <input type="password" id="adminPassword" placeholder="Mot de passe" />
-          <button class="btn-primary" onclick="adminLogin()">Connexion</button>
-          <div id="adminError" class="error-msg"></div>
-        </div>
-        
-        <div id="adminPanel" style="display: none;">
-          <h3>🏢 QR Entreprise</h3>
-          <input id="companyAddressInput" placeholder="Adresse entreprise" />
-          <button class="btn-primary" onclick="generateCompanyQR()">Générer</button>
-          <div id="companyQRSection" style="display:none; text-align:center; background:white; padding:10px; border-radius:10px; margin-top:10px;">
-            <div id="companyQrcode"></div>
-          </div>
-          
-          <h3 style="margin-top:20px;">📊 Stats</h3>
-          <div class="stats-grid">
-            <div class="stat-card"><div class="stat-number" id="adminTotalUsers">0</div><div class="stat-label">Joueurs</div></div>
-            <div class="stat-card"><div class="stat-number" id="adminAvgDistance">0</div><div class="stat-label">Km Moy.</div></div>
-          </div>
-          <div id="adminStats"></div>
-          <div id="leaderboard" class="leaderboard"></div>
-          
-          <h3>⚙️ Config</h3>
-          <input id="googleScriptUrl" placeholder="URL Google Script" />
-          <button class="btn-secondary" onclick="saveGoogleScriptUrl()">💾 Sauvegarder URL</button>
-          <button class="btn-primary" onclick="exportExcel()" style="margin-top:10px;">📊 Export Excel</button>
-          <button class="btn-outline" style="border-color:#ef4444; color:#ef4444; margin-top:20px;" onclick="resetAllData()">🗑️ TOUT EFFACER</button>
-          
-          <div class="navigation-buttons"><button class="btn-outline" onclick="showStep(1)">⬅️ Retour</button></div>
+        <div id="adminLogin"><input type="password" id="adminPassword" placeholder="Mot de passe" /><button class="btn-primary" onclick="adminLogin()">OK</button></div>
+        <div id="adminPanel" style="display:none;">
+            <h3>QR Entreprise</h3>
+            <input id="companyAddressInput" placeholder="Adresse" /><button class="btn-primary" onclick="generateCompanyQR()">Générer</button>
+            <div id="companyQRSection" style="display:none; display:flex; justify-content:center; background:white; padding:10px; border-radius:10px; margin-top:10px;">
+                <div id="companyQrcode"></div>
+            </div>
+            <h3 style="margin-top:20px;">Données</h3>
+            <button class="btn-primary" onclick="exportExcel()">📥 Exporter Excel</button>
+            <button class="btn-outline" style="border-color:#ef4444; color:#ef4444; margin-top:10px;" onclick="resetAllData()">🗑️ RESET COMPLET</button>
+            <div class="navigation-buttons"><button class="btn-outline" onclick="showStep(1)">Retour</button></div>
         </div>
       </div>
     </div>
 
-    <!-- Modale Multimodal -->
-    <div id="multimodalModal" class="modal">
-      <div class="modal-content glass-effect" style="background: rgba(15, 23, 42, 0.95);">
-        <h2>🔄 Modes multiples</h2>
-        <label>Mode secondaire</label>
-        <select id="transportMode2">
-          <option value="car-thermal">🚗 Voiture thermique</option>
-          <option value="car-electric">⚡ Voiture électrique</option>
-          <option value="carpool">🚙 Covoiturage</option>
-          <option value="train">🚆 Train/RER</option>
-          <option value="bus">🚌 Bus/Tram</option>
-          <option value="bike">🚲 Vélo</option>
-          <option value="walk">🚶 Marche</option>
-          <option value="remote">💻 Télétravail</option>
-        </select>
-        <div style="display:flex; gap:10px; align-items:center; margin-top:10px;">
-          <input type="number" id="mode1Days" value="3" style="width:60px;"> j/princ
-          <input type="number" id="mode2Days" value="2" style="width:60px;"> j/sec
-        </div>
-        <div class="navigation-buttons">
-          <button class="btn-outline" onclick="closeMultimodal()">Annuler</button>
-          <button class="btn-primary" onclick="saveMultimodal()">Valider</button>
-        </div>
-      </div>
+    <!-- Invitation -->
+    <div id="invitePage" class="step">
+        <div class="card glass-effect"><h2>Inviter</h2><div id="inviteTimer"></div><div class="qr-wrapper"><div id="inviteQrcode"></div></div><button class="btn-outline" onclick="showStep(1)">Retour</button></div>
     </div>
 
-    <!-- BOUTON ADMIN CORRIGÉ -->
+    <!-- Modale -->
+    <div id="multimodalModal" class="modal"><div class="modal-content glass-effect" style="background:#1e293b;">
+        <h2>Modes Multiples</h2>
+        <select id="transportMode2"><option value="car-thermal">Voiture</option><option value="bike">Vélo</option></select>
+        <div style="display:flex; gap:10px; margin-top:10px;"><input id="mode1Days" value="3" style="width:50px;">j Princ <input id="mode2Days" value="2" style="width:50px;">j Sec</div>
+        <button class="btn-primary" onclick="saveMultimodal()" style="margin-top:10px;">Valider</button>
+    </div></div>
+
     <button class="admin-floating-btn" onclick="showAdminPage()">🔐</button>
-    
-    <!-- Canvas cachés pour le traitement -->
-    <canvas id="canvas"></canvas>
-    <canvas id="gameCanvas"></canvas>
-    <canvas id="companyCanvas"></canvas>
-    <canvas id="positioningCanvas"></canvas>
-
+    <canvas id="canvas" style="display:none;"></canvas>
   </div>
-
-  <!-- SCRIPTS -->
   <script src="config.js"></script>
   <script src="script.js"></script>
 </body>
