@@ -24,7 +24,7 @@
     
     <!-- Header -->
     <header>
-        <div class="brand">🌱 GoDifferent</div>
+        <img src="image.png" alt="GoDifferent" class="brand-logo">
         <div class="step-indicator">
             <div class="step-dot active" id="step1Dot">1</div>
             <div class="step-dot" id="step2Dot">2</div>
@@ -246,6 +246,12 @@
           </div>
         </div>
         
+        <!-- Placeholder Image for Pelotes Instruction (Visual Cue) -->
+        <div style="text-align:center; margin:20px 0; opacity:0.5;">
+            
+            <p style="font-size:0.8em;">Exemple de visualisation</p>
+        </div>
+        
         <div class="navigation-buttons">
           <button class="btn-outline" onclick="showStep(4)">⬅️ Retour</button>
           <button class="btn-primary" onclick="showStep(6)">➡️ Propositions</button>
@@ -389,6 +395,7 @@
       </div>
     </div>
 
+    <!-- BOUTON ADMIN CORRIGÉ -->
     <button class="admin-floating-btn" onclick="showAdminPage()">🔐</button>
     
     <!-- Canvas cachés pour le traitement -->
