@@ -32,7 +32,6 @@ function generateUniqueId() { return Math.random().toString(36).substr(2, 15); }
 function generateEmojiPseudo() { return EMOJI_SET[Math.floor(Math.random()*EMOJI_SET.length)] + EMOJI_SET[Math.floor(Math.random()*EMOJI_SET.length)] + EMOJI_SET[Math.floor(Math.random()*EMOJI_SET.length)]; }
 
 function showError(msg) {
-    // Affiche l'erreur dans la div dédiée si elle existe, sinon alerte
     const errDiv = document.querySelector('.step.active .error-msg');
     if (errDiv) {
         errDiv.textContent = msg;
@@ -43,7 +42,6 @@ function showError(msg) {
 }
 
 function showSuccess(msg) {
-    // Petit toast de succès
     const div = document.createElement('div');
     div.className = 'success-msg';
     div.style.position = 'fixed'; div.style.top = '20px'; div.style.left='50%'; div.style.transform='translateX(-50%)';
@@ -62,6 +60,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     restoreUserData();
     checkRGPDStatus();
+    
+    // Initialisation des selecteurs conditionnels si présents
+    if($('multimodalCheck')) $('multimodalCheck').checked = false;
 });
 
 function checkRGPDStatus() {
@@ -75,9 +76,39 @@ function acceptRGPD() {
     rgpdAccepted = true;
     localStorage.setItem('rgpdAccepted', 'true');
     $('rgpdNotice').style.display = 'none';
+    showSuccess("RGPD Validé");
+}
+
+function showRGPDDetails() {
+    // Création dynamique de la modale RGPD
+    const modal = document.createElement('div');
+    modal.id = 'rgpdInfoModal';
+    modal.className = 'modal active';
+    modal.innerHTML = `
+        <div class="modal-content glass-effect" style="background:#1e293b; color:white;">
+            <h2>🔒 Données Personnelles</h2>
+            <ul style="margin:15px 0 15px 20px;">
+                <li>📍 Données stockées localement sur votre téléphone</li>
+                <li>⏱️ Supprimées automatiquement sous 7 jours</li>
+                <li>👀 Utilisées uniquement pour le jeu en temps réel</li>
+            </ul>
+            <button class="btn-primary" onclick="document.getElementById('rgpdInfoModal').remove()">Fermer</button>
+        </div>
+    `;
+    document.body.appendChild(modal);
 }
 
 function showStep(n) {
+    // Navigation principale par numéros (1, 2, 3...)
+    // Pour les pages nommées (comme 'companyScanPage'), on gère à part
+    if (typeof n === 'string') {
+        document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+        const target = $(n);
+        if(target) target.classList.add('active');
+        stopAllCameras();
+        return;
+    }
+
     document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
     document.querySelectorAll('.step-dot').forEach(d => d.classList.remove('active'));
     
@@ -114,6 +145,71 @@ function checkAccessCode() {
     } else {
         showError("Code invalide");
     }
+}
+
+// ================= MULTIMODAL (Correction ici) =================
+function toggleMultimodal() {
+    const cb = $('multimodalCheck');
+    if(cb.checked) {
+        $('multimodalModal').classList.add('active');
+    }
+}
+
+function closeMultimodal() {
+    $('multimodalModal').classList.remove('active');
+    $('multimodalCheck').checked = false;
+}
+
+function saveMultimodal() {
+    myTransportMode2 = $('transportMode2').value;
+    mode1Days = parseInt($('mode1Days').value);
+    mode2Days = parseInt($('mode2Days').value);
+    
+    // Sauvegarde simple
+    localStorage.setItem('transportMode2', myTransportMode2);
+    localStorage.setItem('mode1Days', mode1Days);
+    localStorage.setItem('mode2Days', mode2Days);
+    
+    $('multimodalModal').classList.remove('active');
+    showSuccess("Modes enregistrés !");
+}
+
+// ================= INVITATION (Correction ici) =================
+function showInvitePage() {
+    document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+    $('invitePage').classList.add('active');
+    
+    // Générer le QR d'invitation
+    const container = $('inviteQrcode');
+    container.innerHTML = '';
+    new QRCode(container, {
+        text: window.location.href,
+        width: 200, height: 200,
+        colorDark : "#0f172a", colorLight : "#ffffff"
+    });
+    
+    startInviteTimer();
+}
+
+function startInviteTimer() {
+    let countdown = 30;
+    const timerDisplay = $('inviteTimer');
+    if(inviteCountdownInterval) clearInterval(inviteCountdownInterval);
+    
+    timerDisplay.innerHTML = `⏱️ Retour dans <strong>${countdown}s</strong>`;
+    
+    inviteCountdownInterval = setInterval(() => {
+        countdown--;
+        timerDisplay.innerHTML = `⏱️ Retour dans <strong>${countdown}s</strong>`;
+        if(countdown <= 0) {
+            clearInterval(inviteCountdownInterval);
+            showStep(2); // Retour automatique
+        }
+    }, 1000);
+}
+
+function extendInviteTimer() {
+    startInviteTimer(); // Relance 30s
 }
 
 // ================= GEOLOC & PROFIL =================
@@ -203,7 +299,7 @@ function startScanLoop(type) {
     const btnId = type === 'game' ? 'gameScanBtn' : (type === 'company' ? null : (type === 'positioning' ? 'positioningScanBtn' : 'scanBtn'));
     const stopBtnId = type === 'game' ? 'stopGameCamBtn' : (type === 'company' ? 'stopCompCamBtn' : (type === 'positioning' ? 'stopPosCamBtn' : 'stopCamBtn'));
 
-    if($(btnId)) $(btnId).style.display = 'none';
+    if(btnId && $(btnId)) $(btnId).style.display = 'none';
     if($(camViewId)) $(camViewId).style.display = 'block';
     if($(stopBtnId)) $(stopBtnId).style.display = 'block'; // Bouton stop dédié
 
@@ -370,15 +466,34 @@ function initStep6Form() {
                 <label>${alt}</label>
             </div>`;
         });
-        // Idem pour contraintes et leviers... (je raccourcis pour la lisibilité)
+        
+        const constList = $('constraintsList');
+        if(constList.children.length === 0) {
+            CONSTRAINTS.forEach((item, i) => {
+                constList.innerHTML += `
+                <div class="checkbox-item">
+                    <input type="checkbox" onchange="this.checked ? selectedConstraints.push('${item}') : selectedConstraints = selectedConstraints.filter(c => c !== '${item}')">
+                    <label>${item}</label>
+                </div>`;
+            });
+        }
+
+        const levList = $('leversList');
+        if(levList.children.length === 0) {
+            LEVERS.forEach((item, i) => {
+                levList.innerHTML += `
+                <div class="checkbox-item">
+                    <input type="checkbox" onchange="this.checked ? selectedLevers.push('${item}') : selectedLevers = selectedLevers.filter(c => c !== '${item}')">
+                    <label>${item}</label>
+                </div>`;
+            });
+        }
     }
 }
 
 function showCompanyScan() {
-    // Ici on enverrait les données du formulaire...
-    showStep('companyScanPage'); // Utilise l'ID direct
-    $('companyScanPage').classList.add('active'); // Force display
-    // Masque step 6
+    showStep('companyScanPage');
+    $('companyScanPage').classList.add('active');
     $('step6').classList.remove('active');
     startScanLoop('company');
 }
@@ -407,11 +522,9 @@ function adminLogin() {
 
 function generateCompanyQR() {
     const addr = $('companyAddressInput').value;
-    // Ici appel API geocode... simplifié pour l'exemple
-    // On simule
     $('companyQrcode').innerHTML = '';
     new QRCode($('companyQrcode'), {
-        text: JSON.stringify({ type: 'company', lat: 48.8566, lon: 2.3522 }), // Paris
+        text: JSON.stringify({ type: 'company', lat: 48.8566, lon: 2.3522 }),
         width: 200, height: 200
     });
     $('companyQRSection').style.display = 'block';
