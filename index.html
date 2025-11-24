@@ -28,10 +28,13 @@
         </div>
     </header>
 
-    <!-- Notice RGPD -->
+    <!-- Notice RGPD COMPLÈTE -->
     <div id="rgpdNotice" class="card glass-effect" style="border-left: 4px solid #10b981;">
-      <p style="font-size: 0.9em; margin-bottom: 15px;">ℹ️ Vos données sont stockées localement (7 jours max).</p>
-      <button class="btn-primary" onclick="acceptRGPD()">✅ J'accepte</button>
+      <p style="font-size: 0.9em; margin-bottom: 15px;">
+        ℹ️ Vos données sont stockées temporairement pour l'atelier.
+        <a href="#" onclick="showRGPDDetails(); return false;" style="color: #FFD700; text-decoration: underline; cursor: pointer; font-weight:bold;">En savoir plus</a>
+      </p>
+      <button class="btn-primary" onclick="acceptRGPD()">✅ J'accepte et je continue</button>
     </div>
 
     <!-- Step 1: Config -->
@@ -186,7 +189,7 @@
         <div class="card glass-effect"><h2>Inviter</h2><div id="inviteTimer"></div><div class="qr-wrapper"><div id="inviteQrcode"></div></div><button class="btn-outline" onclick="showStep(1)">Retour</button></div>
     </div>
 
-    <!-- Modale -->
+    <!-- Modale Multimodal -->
     <div id="multimodalModal" class="modal"><div class="modal-content glass-effect" style="background:#1e293b;">
         <h2>Modes Multiples</h2>
         <select id="transportMode2"><option value="car-thermal">Voiture</option><option value="bike">Vélo</option></select>
