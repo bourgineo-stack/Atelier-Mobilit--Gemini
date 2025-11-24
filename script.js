@@ -77,36 +77,47 @@ function acceptRGPD() {
     showSuccess("RGPD Validé");
 }
 
+// RESTAURATION DU CONTENU COMPLET RGPD
 function showRGPDDetails() {
     const pseudo = myEmoji || "(généré après validation)";
     const modal = document.createElement('div');
     modal.id = 'rgpdInfoModal';
     modal.className = 'modal active';
+    // On garde le style "glass-effect" sombre pour la cohérence, mais avec le contenu d'origine
     modal.innerHTML = `
-        <div class="modal-content glass-effect" style="background:#1e293b; color:white; max-height:90vh; overflow-y:auto;">
-            <h2 style="color:#a5b4fc;">🔒 Protection Données</h2>
+        <div class="modal-content glass-effect" style="background:#1e293b; color:white; max-height:90vh; overflow-y:auto; border: 1px solid rgba(255,255,255,0.2);">
+            <h2 style="color:#a5b4fc; margin-top:0;">🔒 Protection de vos données</h2>
             
-            <h3 style="margin-top:15px;">Collecte</h3>
-            <ul style="margin-left:20px; opacity:0.9;">
-                <li>📍 Coordonnées GPS (pour le calcul de distance)</li>
-                <li>🚗 Mode de transport & Horaires</li>
-                <li>🆔 Identifiant anonyme</li>
+            <h3 style="margin-top:20px; color:#e2e8f0;">Quelles données collectons-nous ?</h3>
+            <ul style="margin-left:20px; margin-top:10px; line-height:1.6; opacity:0.9;">
+                <li>📍 Coordonnées GPS de votre adresse</li>
+                <li>🚗 Votre mode de transport actuel</li>
+                <li>⏰ Votre heure de départ habituelle</li>
+                <li>🆔 Un identifiant anonyme généré automatiquement</li>
             </ul>
 
-            <h3 style="margin-top:15px;">Utilisation</h3>
-            <p style="opacity:0.9;">Données utilisées <strong>uniquement</strong> pour l'animation du jeu en temps réel (calculs de proximité, pelotes de laine).</p>
+            <h3 style="margin-top:20px; color:#e2e8f0;">Pourquoi ?</h3>
+            <p style="opacity:0.9; margin-top:5px;">Ces données permettent de réaliser l'atelier de manière interactive et de visualiser collectivement les trajets domicile-travail.</p>
 
-            <h3 style="margin-top:15px;">Durée & Tiers</h3>
-            <p style="opacity:0.9;">Stockage local sur votre appareil + Google Sheet de l'animateur. Suppression sous <strong>7 jours</strong>.</p>
+            <h3 style="margin-top:20px; color:#e2e8f0;">Combien de temps ?</h3>
+            <p style="opacity:0.9; margin-top:5px;">Vos données sont conservées <strong>uniquement pendant la durée de l'atelier</strong> et supprimées dans les <strong>7 jours suivants</strong>.</p>
 
-            <h3 style="margin-top:15px;">Vos droits</h3>
-            <ul style="margin-left:20px; opacity:0.9;">
-                <li>Droit d'accès et de suppression.</li>
-                <li>Identifiant : <strong>${pseudo}</strong></li>
-                <li>Contact : <strong>volt.face@outlook.fr</strong></li>
+            <h3 style="margin-top:20px; color:#e2e8f0;">Qui y a accès ?</h3>
+            <p style="opacity:0.9; margin-top:5px;">Uniquement l'animateur de l'atelier pour générer les statistiques collectives. Aucune donnée n'est partagée à des tiers.</p>
+
+            <h3 style="margin-top:20px; color:#e2e8f0;">Vos droits</h3>
+            <p style="opacity:0.9; margin-top:5px;">Vous pouvez à tout moment :</p>
+            <ul style="margin-left:20px; margin-top:5px; line-height:1.6; opacity:0.9;">
+                <li>Demander la suppression de vos données (indiquez votre pseudo emoji <strong>${pseudo}</strong>)</li>
+                <li>Consulter vos données enregistrées</li>
+                <li>Vous retirer de l'atelier</li>
             </ul>
 
-            <button class="btn-primary" style="margin-top:20px;" onclick="document.getElementById('rgpdInfoModal').remove()">Fermer</button>
+            <p style="margin-top: 20px; font-size: 0.9em; opacity:0.7; padding:10px; background:rgba(255,255,255,0.05); border-radius:8px;">
+                Pour exercer ces droits, contactez l'animateur de l'atelier ou envoyez un email avec votre pseudo emoji à : <strong>volt.face@outlook.fr</strong>
+            </p>
+
+            <button class="btn-primary" style="margin-top:25px;" onclick="document.getElementById('rgpdInfoModal').remove()">✅ J'ai compris</button>
         </div>
     `;
     document.body.appendChild(modal);
