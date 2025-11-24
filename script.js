@@ -11,7 +11,8 @@ const APP_CONFIG = typeof CONFIG !== 'undefined' ? CONFIG : {
 let myCoords=null, myUniqueId='', myEmoji='', myTransportMode='', myTransportMode2='', mode1Days=0, mode2Days=0, myDepartureTime='07:30', myFullAddress='';
 let participants=[], scanning=false, animationFrameId=null, gameTargets=[], scannedTargets=[], attemptsLeft=5, score=0, gameActive=false;
 let companyCoords=null, companyAddress='', rgpdAccepted=false, inviteCountdownInterval=null, scanCount=0;
-let selectedAlternatives={}, selectedConstraints=[], selectedLevers=[], commitmentLevel=80;
+// Structure pour stocker { "Covoiturage": "1", "Vélo": "3" }
+let selectedAlternatives={}, selectedConstraints={}, selectedLevers={}, commitmentLevel=80;
 let googleScriptUrl = APP_CONFIG.GOOGLE_SCRIPT_URL;
 
 const EMOJI_SET = ['🦸','🐼','🦁','🐻','🦊','🐱','🐯','🦄','🐸','🦉','🐙','🦋','🐨','🦒','🦘','🦥','🐲','🦕'];
@@ -57,10 +58,8 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.innerHTML = "<h1 style='color:white;text-align:center;margin-top:50px;'>Session Expirée</h1>";
         return;
     }
-    
     restoreUserData();
     checkRGPDStatus();
-    
     if($('multimodalCheck')) $('multimodalCheck').checked = false;
 });
 
@@ -76,24 +75,6 @@ function acceptRGPD() {
     localStorage.setItem('rgpdAccepted', 'true');
     $('rgpdNotice').style.display = 'none';
     showSuccess("RGPD Validé");
-}
-
-function showRGPDDetails() {
-    const modal = document.createElement('div');
-    modal.id = 'rgpdInfoModal';
-    modal.className = 'modal active';
-    modal.innerHTML = `
-        <div class="modal-content glass-effect" style="background:#1e293b; color:white;">
-            <h2>🔒 Données Personnelles</h2>
-            <ul style="margin:15px 0 15px 20px;">
-                <li>📍 Données stockées localement sur votre téléphone</li>
-                <li>⏱️ Supprimées automatiquement sous 7 jours</li>
-                <li>👀 Utilisées uniquement pour le jeu en temps réel</li>
-            </ul>
-            <button class="btn-primary" onclick="document.getElementById('rgpdInfoModal').remove()">Fermer</button>
-        </div>
-    `;
-    document.body.appendChild(modal);
 }
 
 function showStep(n) {
@@ -143,26 +124,19 @@ function checkAccessCode() {
 
 // ================= MULTIMODAL =================
 function toggleMultimodal() {
-    const cb = $('multimodalCheck');
-    if(cb.checked) {
-        $('multimodalModal').classList.add('active');
-    }
+    if($('multimodalCheck').checked) $('multimodalModal').classList.add('active');
 }
-
 function closeMultimodal() {
     $('multimodalModal').classList.remove('active');
     $('multimodalCheck').checked = false;
 }
-
 function saveMultimodal() {
     myTransportMode2 = $('transportMode2').value;
     mode1Days = parseInt($('mode1Days').value);
     mode2Days = parseInt($('mode2Days').value);
-    
     localStorage.setItem('transportMode2', myTransportMode2);
     localStorage.setItem('mode1Days', mode1Days);
     localStorage.setItem('mode2Days', mode2Days);
-    
     $('multimodalModal').classList.remove('active');
     showSuccess("Modes enregistrés !");
 }
@@ -171,55 +145,35 @@ function saveMultimodal() {
 function showInvitePage() {
     document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
     $('invitePage').classList.add('active');
-    
-    const container = $('inviteQrcode');
-    container.innerHTML = '';
-    new QRCode(container, {
-        text: window.location.href,
-        width: 200, height: 200,
-        colorDark : "#0f172a", colorLight : "#ffffff"
-    });
-    
+    $('inviteQrcode').innerHTML = '';
+    new QRCode($('inviteQrcode'), { text: window.location.href, width: 200, height: 200, colorDark : "#0f172a", colorLight : "#ffffff" });
     startInviteTimer();
 }
-
 function startInviteTimer() {
     let countdown = 30;
     const timerDisplay = $('inviteTimer');
     if(inviteCountdownInterval) clearInterval(inviteCountdownInterval);
-    
     timerDisplay.innerHTML = `⏱️ Retour dans <strong>${countdown}s</strong>`;
-    
     inviteCountdownInterval = setInterval(() => {
         countdown--;
         timerDisplay.innerHTML = `⏱️ Retour dans <strong>${countdown}s</strong>`;
-        if(countdown <= 0) {
-            clearInterval(inviteCountdownInterval);
-            showStep(2);
-        }
+        if(countdown <= 0) { clearInterval(inviteCountdownInterval); showStep(2); }
     }, 1000);
 }
-
-function extendInviteTimer() {
-    startInviteTimer();
-}
+function extendInviteTimer() { startInviteTimer(); }
 
 // ================= GEOLOC & PROFIL =================
 $('saveLocation').onclick = async () => {
     const addr = $('userAddress').value;
     const mode = $('transportMode').value;
-    
     if(!addr || !mode) return showError("Remplissez tous les champs");
     
     try {
-        const btn = $('saveLocation');
-        btn.textContent = "Recherche..."; btn.disabled = true;
-        
+        $('saveLocation').textContent = "Recherche..."; $('saveLocation').disabled = true;
         await new Promise(r => setTimeout(r, 1000));
         
         const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addr)}&addressdetails=1`);
         const data = await res.json();
-        
         if(!data.length) throw new Error("Adresse introuvable");
         
         myCoords = { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
@@ -230,16 +184,9 @@ $('saveLocation').onclick = async () => {
         localStorage.setItem('userCoords', JSON.stringify(myCoords));
         localStorage.setItem('transportMode', myTransportMode);
         
-        if(!myUniqueId) {
-            myUniqueId = generateUniqueId();
-            localStorage.setItem('myUniqueId', myUniqueId);
-        }
-        if(!myEmoji) {
-            myEmoji = generateEmojiPseudo();
-            localStorage.setItem('myEmoji', myEmoji);
-        }
+        if(!myUniqueId) { myUniqueId = generateUniqueId(); localStorage.setItem('myUniqueId', myUniqueId); }
+        if(!myEmoji) { myEmoji = generateEmojiPseudo(); localStorage.setItem('myEmoji', myEmoji); }
         
-        // Sauvegarde LocalStorage
         localStorage.setItem('departureTime', myDepartureTime);
         localStorage.setItem('fullAddress', myFullAddress);
         
@@ -248,26 +195,16 @@ $('saveLocation').onclick = async () => {
         $('myEmojiDisplay').textContent = myEmoji;
         $('detectedAddress').textContent = myFullAddress.split(',')[0];
         
-        // Envoi Sheet (CORRIGÉ: noms des champs alignés avec le script Google)
         const payload = {
-            type: 'participant', 
-            id: myUniqueId, 
-            emoji: myEmoji, 
-            lat: myCoords.lat, 
-            lon: myCoords.lon, 
-            address: myFullAddress, 
-            transport: myTransportMode, // Correction ici (était 'mode')
-            transportMode2: myTransportMode2,
-            mode1Days: mode1Days,
-            mode2Days: mode2Days,
-            departureTime: myDepartureTime
+            type: 'participant', id: myUniqueId, emoji: myEmoji, lat: myCoords.lat, lon: myCoords.lon, 
+            address: myFullAddress, transport: myTransportMode, transportMode2: myTransportMode2,
+            mode1Days: mode1Days, mode2Days: mode2Days, departureTime: myDepartureTime
         };
         if(googleScriptUrl) fetch(googleScriptUrl, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
         
     } catch(e) {
         showError(e.message);
-        $('saveLocation').textContent = "Valider ma localisation";
-        $('saveLocation').disabled = false;
+        $('saveLocation').textContent = "Valider ma localisation"; $('saveLocation').disabled = false;
     }
 };
 
@@ -280,15 +217,8 @@ function restoreUserData() {
     myTransportMode2 = localStorage.getItem('transportMode2') || '';
     mode1Days = parseInt(localStorage.getItem('mode1Days') || '0');
     mode2Days = parseInt(localStorage.getItem('mode2Days') || '0');
-    
-    // Restauration des participants scannés
-    const savedParticipants = localStorage.getItem('participants');
-    if(savedParticipants) {
-        participants = JSON.parse(savedParticipants);
-        scanCount = participants.length;
-    } else {
-        scanCount = 0;
-    }
+    const saved = localStorage.getItem('participants');
+    if(saved) { participants = JSON.parse(saved); scanCount = participants.length; } else { scanCount = 0; }
 }
 
 // ================= CAMERA & QR =================
@@ -316,7 +246,6 @@ function startScanLoop(type) {
     if($(stopBtnId)) $(stopBtnId).style.display = 'block';
 
     const video = $(videoId);
-    
     navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
     .then(stream => {
         video.srcObject = stream;
@@ -324,10 +253,7 @@ function startScanLoop(type) {
         video.play();
         requestAnimationFrame(() => tick(video, type));
     })
-    .catch(err => {
-        showError("Erreur caméra");
-        stopAllCameras();
-    });
+    .catch(err => { showError("Erreur caméra"); stopAllCameras(); });
 }
 
 function tick(video, type) {
@@ -343,17 +269,14 @@ function tick(video, type) {
             try {
                 const data = JSON.parse(code.data);
                 let success = false;
-                
-                if(type === 'company' && data.type === 'company') {
-                    handleCompanyScan(data); success = true;
-                } else if(data.id && data.lat) {
+                if(type === 'company' && data.type === 'company') { handleCompanyScan(data); success = true; }
+                else if(data.id && data.lat) {
                     if(type === 'game') success = handleGameScan(data);
+                    else if(type === 'positioning') success = handlePositioningScan(data); // Correction Triangulation
                     else success = addParticipant(data);
                 }
-                
                 if(success) stopAllCameras();
-                
-            } catch(e) { console.log("QR non reconnu"); }
+            } catch(e) {}
         }
     }
     if(scanning) requestAnimationFrame(() => tick(video, type));
@@ -366,7 +289,6 @@ function stopAllCameras() {
         v.srcObject = null;
     });
     document.querySelectorAll('.camera-container').forEach(e => e.style.display = 'none');
-    
     ['scanBtn', 'gameScanBtn', 'positioningScanBtn'].forEach(id => { if($(id)) $(id).style.display = 'block'; });
     ['stopCamBtn', 'stopGameCamBtn', 'stopPosCamBtn', 'stopCompCamBtn'].forEach(id => { if($(id)) $(id).style.display = 'none'; });
 }
@@ -385,8 +307,6 @@ function addParticipant(data) {
     
     const dist = haversineKm(myCoords.lat, myCoords.lon, data.lat, data.lon);
     participants.push({ ...data, distance: dist });
-    
-    // Sauvegarde de la liste complète pour la persistance (Fix 0 à 3)
     localStorage.setItem('participants', JSON.stringify(participants));
     
     scanCount = participants.length;
@@ -410,21 +330,21 @@ function addParticipant(data) {
         };
     }
     
-    // Envoi Google Sheet
     sendToGoogleSheets({
-        type: 'scan',
-        scannerId: myUniqueId,
-        scannerEmoji: myEmoji,
-        scannedId: data.id,
-        distance: dist,
-        step: 2,
-        totalScans: scanCount
+        type: 'scan', scannerId: myUniqueId, scannerEmoji: myEmoji,
+        scannedId: data.id, distance: dist, step: 2, totalScans: scanCount
     });
-    
     return true;
 }
 
-// ================= JEU VOISINS =================
+// ================= JEU & POSITIONNEMENT =================
+function handlePositioningScan(data) {
+    const dist = haversineKm(myCoords.lat, myCoords.lon, data.lat, data.lon);
+    showSuccess(`📍 Distance: ${dist.toFixed(1)} km`);
+    $('positioningScanBtn').style.display = 'block';
+    return true;
+}
+
 function initGame() {
     if(participants.length < 1) return;
     gameTargets = participants.sort((a,b) => a.distance - b.distance).slice(0, 5);
@@ -435,16 +355,12 @@ function initGame() {
 function updateGameUI() {
     $('scoreBadge').textContent = `${score}/3`;
     $('attemptsLeft').textContent = attemptsLeft;
-    
     let html = '';
     gameTargets.forEach((t, i) => {
         const isScanned = scannedTargets.includes(t.id);
         html += `
         <div class="participant-card ${isScanned ? 'scanned' : 'target'}">
-            <div>
-                <strong>Voisin ${i+1}</strong>
-                <br><small>${t.distance.toFixed(1)} km</small>
-            </div>
+            <div><strong>Voisin ${i+1}</strong><br><small>${t.distance.toFixed(1)} km</small></div>
             <div class="icon-badge">${isScanned ? '✅' : '🎯'}</div>
         </div>`;
     });
@@ -454,7 +370,6 @@ function updateGameUI() {
 function handleGameScan(data) {
     const target = gameTargets.find(t => t.id === data.id);
     if(!target) { showError("Ce n'est pas un voisin proche !"); return false; }
-    
     if(scannedTargets.includes(data.id)) { showError("Déjà trouvé !"); return false; }
     
     scannedTargets.push(data.id);
@@ -462,18 +377,12 @@ function handleGameScan(data) {
     showSuccess("Bravo ! Voisin trouvé.");
     updateGameUI();
     
-    // Envoi Google Sheet résultat jeu
     if(score >= 3) {
         $('gameResult').innerHTML = `<div class="success-msg">🎉 GAGNÉ !</div>`;
         $('gameScanBtn').style.display = 'none';
-        
         sendToGoogleSheets({
-            type: 'game_result',
-            participantId: myUniqueId,
-            score: score,
-            attempts: 5 - attemptsLeft,
-            errors: (5 - attemptsLeft) - score,
-            title: 'Gagné'
+            type: 'game_result', participantId: myUniqueId, score: score,
+            attempts: 5 - attemptsLeft, errors: (5 - attemptsLeft) - score, title: 'Gagné'
         });
     }
     return true;
@@ -486,83 +395,72 @@ function resetGame() {
     $('gameResult').innerHTML = '';
 }
 
-// ================= FORMULAIRE & ENTREPRISE =================
+// ================= FORMULAIRE AVEC HIERARCHIE =================
 function initStep6Form() {
     const altList = $('alternativesList');
-    // Éviter les doublons si on revient sur la page
     if(altList.children.length > 0) return;
 
-    // ALTERNATIVES
     ALTERNATIVES.forEach((alt, i) => {
         const isOther = alt.toLowerCase().includes("autre");
-        let inputHtml = isOther ? `<input type="text" id="altInput${i}" class="other-input" placeholder="Précisez..." style="display:none; margin-top:5px; width:100%;">` : '';
-        
-        altList.innerHTML += `
+        let html = `
         <div class="checkbox-item-wrapper">
             <div class="checkbox-item">
                 <input type="checkbox" id="alt${i}" onchange="handleOptionChange(this, 'alt', '${alt}', ${i}, ${isOther})">
-                <label for="alt${i}">${alt}</label>
-            </div>
-            ${inputHtml}
-        </div>`;
+                <label for="alt${i}" style="flex:1;">${alt}</label>
+                <!-- Sélecteur de priorité masqué par défaut -->
+                <select id="prioAlt${i}" class="prio-select" style="display:none; width:auto; padding:2px;" onchange="selectedAlternatives['${alt}'] = this.value">
+                    <option value="1">Prio 1</option>
+                    <option value="2">Prio 2</option>
+                    <option value="3">Prio 3</option>
+                </select>
+            </div>`;
+        if(isOther) html += `<input type="text" id="altInput${i}" class="other-input" placeholder="Précisez..." style="display:none;">`;
+        html += `</div>`;
+        altList.innerHTML += html;
     });
     
-    // CONTRAINTES
     const constList = $('constraintsList');
     CONSTRAINTS.forEach((item, i) => {
         const isOther = item.toLowerCase().includes("autre");
-        let inputHtml = isOther ? `<input type="text" id="consInput${i}" class="other-input" placeholder="Précisez..." style="display:none; margin-top:5px; width:100%;">` : '';
-        
-        constList.innerHTML += `
-        <div class="checkbox-item-wrapper">
-            <div class="checkbox-item">
-                <input type="checkbox" id="cons${i}" onchange="handleOptionChange(this, 'cons', '${item}', ${i}, ${isOther})">
-                <label for="cons${i}">${item}</label>
-            </div>
-            ${inputHtml}
-        </div>`;
+        let html = `<div class="checkbox-item-wrapper"><div class="checkbox-item">
+            <input type="checkbox" id="cons${i}" onchange="handleOptionChange(this, 'cons', '${item}', ${i}, ${isOther})">
+            <label for="cons${i}">${item}</label></div>`;
+        if(isOther) html += `<input type="text" id="consInput${i}" class="other-input" placeholder="Précisez..." style="display:none;">`;
+        html += `</div>`;
+        constList.innerHTML += html;
     });
 
-    // LEVIERS
     const levList = $('leversList');
     LEVERS.forEach((item, i) => {
         const isOther = item.toLowerCase().includes("autre");
-        let inputHtml = isOther ? `<input type="text" id="levInput${i}" class="other-input" placeholder="Précisez..." style="display:none; margin-top:5px; width:100%;">` : '';
-        
-        levList.innerHTML += `
-        <div class="checkbox-item-wrapper">
-            <div class="checkbox-item">
-                <input type="checkbox" id="lev${i}" onchange="handleOptionChange(this, 'lev', '${item}', ${i}, ${isOther})">
-                <label for="lev${i}">${item}</label>
-            </div>
-            ${inputHtml}
-        </div>`;
+        let html = `<div class="checkbox-item-wrapper"><div class="checkbox-item">
+            <input type="checkbox" id="lev${i}" onchange="handleOptionChange(this, 'lev', '${item}', ${i}, ${isOther})">
+            <label for="lev${i}">${item}</label></div>`;
+        if(isOther) html += `<input type="text" id="levInput${i}" class="other-input" placeholder="Précisez..." style="display:none;">`;
+        html += `</div>`;
+        levList.innerHTML += html;
     });
 }
 
 function handleOptionChange(checkbox, type, name, index, isOther) {
-    // Gestion champ "Autre"
+    // Affichage champ Autre
     if(isOther) {
         const input = document.getElementById(`${type}Input${index}`);
-        if(input) {
-            input.style.display = checkbox.checked ? 'block' : 'none';
-            if(!checkbox.checked) input.value = ''; // Reset si décoché
-        }
-    }
-
-    // Logique de stockage (simplifiée pour l'exemple)
-    let finalName = name;
-    if(isOther && checkbox.checked) {
-        // On ne stocke pas "Autre" tout de suite, on le récupérera lors de l'envoi
-        // Mais on marque qu'il est coché
+        if(input) input.style.display = checkbox.checked ? 'block' : 'none';
     }
     
+    // Affichage Priorité (seulement pour Alternatives)
     if(type === 'alt') {
-        if(checkbox.checked) selectedAlternatives[name] = 1; else delete selectedAlternatives[name];
+        const prioSelect = document.getElementById(`prioAlt${index}`);
+        if(prioSelect) {
+            prioSelect.style.display = checkbox.checked ? 'block' : 'none';
+            if(checkbox.checked) selectedAlternatives[name] = "1"; 
+            else delete selectedAlternatives[name];
+        }
     } else if (type === 'cons') {
-        if(checkbox.checked) selectedConstraints.push(name); else selectedConstraints = selectedConstraints.filter(c => c !== name);
+        if(checkbox.checked) selectedConstraints[name] = "1"; else delete selectedConstraints[name];
     } else if (type === 'lev') {
-        if(checkbox.checked) selectedLevers.push(name); else selectedLevers = selectedLevers.filter(c => c !== name);
+        if(checkbox.checked) selectedLevers[name] = "1"; else delete selectedLevers[name];
     }
 }
 
@@ -572,43 +470,22 @@ function updateCommitmentValue() {
 }
 
 function showCompanyScan() {
-    // Récupération des valeurs "Autre" avant envoi
-    let finalAlternatives = {...selectedAlternatives};
-    let finalConstraints = [...selectedConstraints];
-    let finalLevers = [...selectedLevers];
+    // Récupération finale des champs "Autre" et construction string
+    let altStr = Object.entries(selectedAlternatives).map(([k,v]) => {
+        if(k.toLowerCase().includes("autre")) {
+            // Trouver l'input correspondant
+            const inputs = document.querySelectorAll('#alternativesList .other-input');
+            for(let inp of inputs) { if(inp.style.display !== 'none') return `Autre: ${inp.value} (Prio ${v})`; }
+        }
+        return `${k} (Prio ${v})`;
+    }).join(', ');
 
-    // Fonction helper pour ajouter le texte précis
-    const processOther = (list, type) => {
-        const wrappers = document.querySelectorAll(`#${list} .checkbox-item-wrapper`);
-        wrappers.forEach((w, i) => {
-            const cb = w.querySelector('input[type="checkbox"]');
-            const txt = w.querySelector('input[type="text"]');
-            if(cb && cb.checked && txt && txt.value) {
-                // On remplace "Autre" par "Autre: valeur"
-                if(type === 'obj') {
-                    const key = Object.keys(finalAlternatives).find(k => k.toLowerCase().includes('autre'));
-                    if(key) { delete finalAlternatives[key]; finalAlternatives[`Autre: ${txt.value}`] = 1; }
-                } else {
-                    const idx = type.indexOf(type.find(k => k.toLowerCase().includes('autre')));
-                    if(idx > -1) type[idx] = `Autre: ${txt.value}`;
-                }
-            }
-        });
-    };
-    
-    // Préparation données pour Sheet
-    const altText = Object.keys(finalAlternatives).join(', ');
-    const consText = finalConstraints.join(', ');
-    const levText = finalLevers.join(', ');
+    let consStr = Object.keys(selectedConstraints).join(', ');
+    let levStr = Object.keys(selectedLevers).join(', ');
 
     sendToGoogleSheets({
-        type: 'propositions',
-        participantId: myUniqueId,
-        emoji: myEmoji,
-        alternatives: altText,
-        contraintes: consText,
-        leviers: levText,
-        engagement: commitmentLevel
+        type: 'propositions', participantId: myUniqueId, emoji: myEmoji,
+        alternatives: altStr, contraintes: consStr, leviers: levStr, engagement: commitmentLevel
     });
 
     showStep('companyScanPage');
@@ -617,7 +494,7 @@ function showCompanyScan() {
     startScanLoop('company');
 }
 
-// ================= ADMIN (Correction ici) =================
+// ================= ADMIN & RAPPORT =================
 function showAdminPage() {
     showStep('adminPage');
     $('adminPage').classList.add('active');
@@ -630,27 +507,23 @@ function adminLogin() {
         $('adminLogin').style.display = 'none';
         $('adminPanel').style.display = 'block';
         refreshAdminStats();
-    } else {
-        showError("Mot de passe incorrect");
-    }
+    } else { showError("Mot de passe incorrect"); }
 }
 
 function generateCompanyQR() {
     const addr = $('companyAddressInput').value;
     $('companyQrcode').innerHTML = '';
-    // QR code simplifié pour l'exemple (en prod, utiliser le vrai geocode)
+    // QR code simplifié mais suffisant pour la démo
     new QRCode($('companyQrcode'), {
-        text: JSON.stringify({ type: 'company', lat: 48.8566, lon: 2.3522 }),
+        text: JSON.stringify({ type: 'company', lat: 48.8566, lon: 2.3522 }), // Coordonnées fictives Paris pour démo
         width: 200, height: 200
     });
     $('companyQRSection').style.display = 'block';
 }
 
 function updateStep5Stats() {
-    // Mise à jour des stats pelotes avec les données locales
     const total = participants.length + 1;
     $('totalParticipants').textContent = total;
-    
     if(participants.length > 0) {
         const avg = participants.reduce((acc, p) => acc + p.distance, 0) / participants.length;
         $('avgDistance').textContent = avg.toFixed(1);
@@ -660,40 +533,68 @@ function updateStep5Stats() {
 function handleCompanyScan(data) {
     companyCoords = { lat: data.lat, lon: data.lon };
     const dist = haversineKm(myCoords.lat, myCoords.lon, companyCoords.lat, companyCoords.lon);
-    const co2 = Math.round(dist * 2 * 220 * 0.1); 
+    
+    // Calcul gain : Distance x 2 (AR) x 220 jours x facteur CO2 x 0.3 (30% économie estimée)
+    let factor = CO2_FACTORS[myTransportMode] || 0.1;
+    const co2 = Math.round(dist * 2 * 220 * factor * 0.3); 
+    
     $('co2Savings').textContent = co2;
     
     stopAllCameras();
     $('companyScanPage').classList.remove('active');
     $('reportPage').classList.add('active');
     
-    // Envoi final distance entreprise
-    sendToGoogleSheets({
-        type: 'company_distance',
-        participantId: myUniqueId,
-        emoji: myEmoji,
-        distance: dist
-    });
+    sendToGoogleSheets({ type: 'company_distance', participantId: myUniqueId, emoji: myEmoji, distance: dist });
 }
 
-// ================= SYNC GOOGLE SHEET =================
 function sendToGoogleSheets(data) {
     if(!googleScriptUrl) return;
     fetch(googleScriptUrl, { method: 'POST', mode: 'no-cors', body: JSON.stringify(data) })
-        .then(() => console.log("Envoyé"))
         .catch(e => console.error("Erreur envoi", e));
 }
 
-// ================= RESET =================
 function resetAllData() {
-    if(confirm("Tout effacer ?")) {
+    // Validation de sécurité simple
+    const confirmation = prompt("⚠️ DANGER : Pour tout effacer, tapez 'SUPPRIMER'");
+    if(confirmation === 'SUPPRIMER') {
         localStorage.clear();
         location.reload();
+    } else {
+        alert("Action annulée.");
     }
 }
 
+async function exportExcel() {
+    // Tentative d'export via Google Sheet JSON
+    const btn = document.querySelector('#adminPanel .btn-primary');
+    const originalText = btn.innerText;
+    btn.innerText = "Téléchargement...";
+    
+    try {
+        const res = await fetch(googleScriptUrl + '?action=get');
+        const data = await res.json();
+        
+        const wb = XLSX.utils.book_new();
+        if(data.participants) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data.participants), "Participants");
+        if(data.scans) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data.scans), "Scans");
+        XLSX.writeFile(wb, "Atelier_Mobilite_Export.xlsx");
+        showSuccess("Export réussi !");
+        
+    } catch(e) {
+        console.warn("Export Google échoué (probablement CORS), fallback local");
+        // Fallback: Export des données locales
+        const wb = XLSX.utils.book_new();
+        // Participants scannés par cet appareil
+        const localParts = participants.map(p => ({ Emoji: p.emoji, Distance: p.distance, Mode: p.transport }));
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(localParts), "Mes Scans Locaux");
+        XLSX.writeFile(wb, "Export_Local_Secours.xlsx");
+        alert("⚠️ Impossible de récupérer les données globales (blocage Google). Un fichier avec VOS données locales a été généré à la place.");
+    }
+    btn.innerText = originalText;
+}
+
 function refreshAdminStats() {
-    // Calcul simple sur données locales pour l'instant (car no-cors ne permet pas de lire le sheet facilement sans proxi)
+    // Stats basées sur données locales (seule source fiable sans backend complexe)
     $('adminTotalUsers').textContent = participants.length + 1;
     if(participants.length > 0) {
         const avg = participants.reduce((acc, p) => acc + p.distance, 0) / participants.length;
@@ -702,5 +603,30 @@ function refreshAdminStats() {
 }
 
 function generatePDF() {
-    alert("Génération PDF simulée pour cette démo.");
+    // Page HTML imprimable propre
+    const win = window.open('', '_blank');
+    const content = `
+    <html><head><title>Rapport ${myEmoji}</title>
+    <style>body{font-family:sans-serif;padding:20px;color:#333;} h1{color:#4F46E5;} .card{border:1px solid #ddd;padding:15px;border-radius:10px;margin-bottom:15px;background:#f9f9f9;}</style>
+    </head><body>
+    <h1>🌱 Mon Bilan Mobilité</h1>
+    <div class="card">
+        <h3>👤 Profil</h3>
+        <p><strong>Pseudo :</strong> ${myEmoji}</p>
+        <p><strong>Adresse :</strong> ${myFullAddress}</p>
+        <p><strong>Mode :</strong> ${myTransportMode}</p>
+    </div>
+    <div class="card">
+        <h3>🌍 Impact</h3>
+        <p><strong>Gain potentiel :</strong> ${$('co2Savings').textContent} kg CO2/an</p>
+        <p><strong>Voisins trouvés :</strong> ${participants.slice(0,5).length}</p>
+    </div>
+    <div class="card">
+        <h3>🚀 Engagement</h3>
+        <p>Probabilité de changement : ${commitmentLevel}%</p>
+    </div>
+    <button onclick="window.print()" style="padding:10px 20px;background:#4F46E5;color:white;border:none;border-radius:5px;cursor:pointer;">Imprimer / PDF</button>
+    </body></html>`;
+    win.document.write(content);
+    win.document.close();
 }
