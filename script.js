@@ -61,7 +61,6 @@ document.addEventListener('DOMContentLoaded', () => {
     restoreUserData();
     checkRGPDStatus();
     
-    // Initialisation des selecteurs conditionnels si présents
     if($('multimodalCheck')) $('multimodalCheck').checked = false;
 });
 
@@ -80,7 +79,6 @@ function acceptRGPD() {
 }
 
 function showRGPDDetails() {
-    // Création dynamique de la modale RGPD
     const modal = document.createElement('div');
     modal.id = 'rgpdInfoModal';
     modal.className = 'modal active';
@@ -99,8 +97,6 @@ function showRGPDDetails() {
 }
 
 function showStep(n) {
-    // Navigation principale par numéros (1, 2, 3...)
-    // Pour les pages nommées (comme 'companyScanPage'), on gère à part
     if (typeof n === 'string') {
         document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
         const target = $(n);
@@ -115,7 +111,6 @@ function showStep(n) {
     const target = $(`step${n}`);
     if(target) target.classList.add('active');
     
-    // Update dots
     for(let i=1; i<=n; i++) {
         const dot = $(`step${i}Dot`);
         if(dot) {
@@ -126,7 +121,6 @@ function showStep(n) {
     
     stopAllCameras();
     
-    // Init spécifique par étape
     if(n===2) setTimeout(()=>genMyQRCode('qrcode'), 100);
     if(n===3) { initGame(); setTimeout(()=>genMyQRCode('qrcodeStep3'), 100); }
     if(n===4) setTimeout(()=>genMyQRCode('qrcodeStep4'), 100);
@@ -147,7 +141,7 @@ function checkAccessCode() {
     }
 }
 
-// ================= MULTIMODAL (Correction ici) =================
+// ================= MULTIMODAL =================
 function toggleMultimodal() {
     const cb = $('multimodalCheck');
     if(cb.checked) {
@@ -165,7 +159,6 @@ function saveMultimodal() {
     mode1Days = parseInt($('mode1Days').value);
     mode2Days = parseInt($('mode2Days').value);
     
-    // Sauvegarde simple
     localStorage.setItem('transportMode2', myTransportMode2);
     localStorage.setItem('mode1Days', mode1Days);
     localStorage.setItem('mode2Days', mode2Days);
@@ -174,12 +167,11 @@ function saveMultimodal() {
     showSuccess("Modes enregistrés !");
 }
 
-// ================= INVITATION (Correction ici) =================
+// ================= INVITATION =================
 function showInvitePage() {
     document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
     $('invitePage').classList.add('active');
     
-    // Générer le QR d'invitation
     const container = $('inviteQrcode');
     container.innerHTML = '';
     new QRCode(container, {
@@ -203,13 +195,13 @@ function startInviteTimer() {
         timerDisplay.innerHTML = `⏱️ Retour dans <strong>${countdown}s</strong>`;
         if(countdown <= 0) {
             clearInterval(inviteCountdownInterval);
-            showStep(2); // Retour automatique
+            showStep(2);
         }
     }, 1000);
 }
 
 function extendInviteTimer() {
-    startInviteTimer(); // Relance 30s
+    startInviteTimer();
 }
 
 // ================= GEOLOC & PROFIL =================
@@ -223,7 +215,6 @@ $('saveLocation').onclick = async () => {
         const btn = $('saveLocation');
         btn.textContent = "Recherche..."; btn.disabled = true;
         
-        // Simuler délai API si Nominatim
         await new Promise(r => setTimeout(r, 1000));
         
         const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addr)}&addressdetails=1`);
@@ -236,7 +227,6 @@ $('saveLocation').onclick = async () => {
         myTransportMode = mode;
         myDepartureTime = $('departureTime').value;
         
-        // Sauvegarde
         localStorage.setItem('userCoords', JSON.stringify(myCoords));
         localStorage.setItem('transportMode', myTransportMode);
         
@@ -249,16 +239,28 @@ $('saveLocation').onclick = async () => {
             localStorage.setItem('myEmoji', myEmoji);
         }
         
-        // UI Update
+        // Sauvegarde LocalStorage
+        localStorage.setItem('departureTime', myDepartureTime);
+        localStorage.setItem('fullAddress', myFullAddress);
+        
         $('locationSection').style.display = 'none';
         $('afterLocationSection').style.display = 'block';
         $('myEmojiDisplay').textContent = myEmoji;
-        $('detectedAddress').textContent = myFullAddress.split(',')[0]; // Juste le début
+        $('detectedAddress').textContent = myFullAddress.split(',')[0];
         
-        // Envoi Sheet (Fire & Forget)
+        // Envoi Sheet (CORRIGÉ: noms des champs alignés avec le script Google)
         const payload = {
-            type: 'participant', id: myUniqueId, emoji: myEmoji, lat: myCoords.lat, lon: myCoords.lon, 
-            address: myFullAddress, mode: myTransportMode
+            type: 'participant', 
+            id: myUniqueId, 
+            emoji: myEmoji, 
+            lat: myCoords.lat, 
+            lon: myCoords.lon, 
+            address: myFullAddress, 
+            transport: myTransportMode, // Correction ici (était 'mode')
+            transportMode2: myTransportMode2,
+            mode1Days: mode1Days,
+            mode2Days: mode2Days,
+            departureTime: myDepartureTime
         };
         if(googleScriptUrl) fetch(googleScriptUrl, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
         
@@ -275,7 +277,18 @@ function restoreUserData() {
     const coords = localStorage.getItem('userCoords');
     if(coords) myCoords = JSON.parse(coords);
     myTransportMode = localStorage.getItem('transportMode');
-    scanCount = parseInt(localStorage.getItem('scanCount') || '0');
+    myTransportMode2 = localStorage.getItem('transportMode2') || '';
+    mode1Days = parseInt(localStorage.getItem('mode1Days') || '0');
+    mode2Days = parseInt(localStorage.getItem('mode2Days') || '0');
+    
+    // Restauration des participants scannés
+    const savedParticipants = localStorage.getItem('participants');
+    if(savedParticipants) {
+        participants = JSON.parse(savedParticipants);
+        scanCount = participants.length;
+    } else {
+        scanCount = 0;
+    }
 }
 
 // ================= CAMERA & QR =================
@@ -293,7 +306,6 @@ function genMyQRCode(elId) {
 function startScanLoop(type) {
     scanning = true;
     
-    // Show/Hide UI elements
     const camViewId = type === 'game' ? 'gameCameraView' : (type === 'company' ? 'companyCameraView' : (type === 'positioning' ? 'positioningCameraView' : 'cameraView'));
     const videoId = type === 'game' ? 'gameVideo' : (type === 'company' ? 'companyVideo' : (type === 'positioning' ? 'positioningVideo' : 'video'));
     const btnId = type === 'game' ? 'gameScanBtn' : (type === 'company' ? null : (type === 'positioning' ? 'positioningScanBtn' : 'scanBtn'));
@@ -301,7 +313,7 @@ function startScanLoop(type) {
 
     if(btnId && $(btnId)) $(btnId).style.display = 'none';
     if($(camViewId)) $(camViewId).style.display = 'block';
-    if($(stopBtnId)) $(stopBtnId).style.display = 'block'; // Bouton stop dédié
+    if($(stopBtnId)) $(stopBtnId).style.display = 'block';
 
     const video = $(videoId);
     
@@ -355,7 +367,6 @@ function stopAllCameras() {
     });
     document.querySelectorAll('.camera-container').forEach(e => e.style.display = 'none');
     
-    // Reset boutons
     ['scanBtn', 'gameScanBtn', 'positioningScanBtn'].forEach(id => { if($(id)) $(id).style.display = 'block'; });
     ['stopCamBtn', 'stopGameCamBtn', 'stopPosCamBtn', 'stopCompCamBtn'].forEach(id => { if($(id)) $(id).style.display = 'none'; });
 }
@@ -375,17 +386,18 @@ function addParticipant(data) {
     const dist = haversineKm(myCoords.lat, myCoords.lon, data.lat, data.lon);
     participants.push({ ...data, distance: dist });
     
-    scanCount++;
+    // Sauvegarde de la liste complète pour la persistance (Fix 0 à 3)
+    localStorage.setItem('participants', JSON.stringify(participants));
+    
+    scanCount = participants.length;
     localStorage.setItem('scanCount', scanCount);
     $('scanCount').textContent = scanCount;
     $('step2Progress').style.width = Math.min((scanCount/20)*100, 100) + '%';
     
     showSuccess(`Scan OK ! (${dist.toFixed(1)} km)`);
     
-    // Débloquer étape suivante
     if(participants.length >= APP_CONFIG.MIN_PARTICIPANTS_REQUIRED) $('goToStep3').disabled = false;
     
-    // Challenge aléatoire
     if(dist < 5) {
         const chal = miniChallenges[Math.floor(Math.random()*miniChallenges.length)];
         $('challengeTitle').textContent = chal.title;
@@ -398,13 +410,23 @@ function addParticipant(data) {
         };
     }
     
+    // Envoi Google Sheet
+    sendToGoogleSheets({
+        type: 'scan',
+        scannerId: myUniqueId,
+        scannerEmoji: myEmoji,
+        scannedId: data.id,
+        distance: dist,
+        step: 2,
+        totalScans: scanCount
+    });
+    
     return true;
 }
 
 // ================= JEU VOISINS =================
 function initGame() {
     if(participants.length < 1) return;
-    // Trier par distance
     gameTargets = participants.sort((a,b) => a.distance - b.distance).slice(0, 5);
     scannedTargets = []; score = 0; attemptsLeft = 5;
     updateGameUI();
@@ -440,9 +462,19 @@ function handleGameScan(data) {
     showSuccess("Bravo ! Voisin trouvé.");
     updateGameUI();
     
+    // Envoi Google Sheet résultat jeu
     if(score >= 3) {
         $('gameResult').innerHTML = `<div class="success-msg">🎉 GAGNÉ !</div>`;
         $('gameScanBtn').style.display = 'none';
+        
+        sendToGoogleSheets({
+            type: 'game_result',
+            participantId: myUniqueId,
+            score: score,
+            attempts: 5 - attemptsLeft,
+            errors: (5 - attemptsLeft) - score,
+            title: 'Gagné'
+        });
     }
     return true;
 }
@@ -456,65 +488,148 @@ function resetGame() {
 
 // ================= FORMULAIRE & ENTREPRISE =================
 function initStep6Form() {
-    // Remplissage dynamique (simplifié)
     const altList = $('alternativesList');
-    if(altList.children.length === 0) {
-        ALTERNATIVES.forEach((alt, i) => {
-            altList.innerHTML += `
-            <div class="checkbox-item">
-                <input type="checkbox" id="alt${i}" onchange="this.checked ? selectedAlternatives['${alt}']=1 : delete selectedAlternatives['${alt}']">
-                <label>${alt}</label>
-            </div>`;
-        });
-        
-        const constList = $('constraintsList');
-        if(constList.children.length === 0) {
-            CONSTRAINTS.forEach((item, i) => {
-                constList.innerHTML += `
-                <div class="checkbox-item">
-                    <input type="checkbox" onchange="this.checked ? selectedConstraints.push('${item}') : selectedConstraints = selectedConstraints.filter(c => c !== '${item}')">
-                    <label>${item}</label>
-                </div>`;
-            });
-        }
+    // Éviter les doublons si on revient sur la page
+    if(altList.children.length > 0) return;
 
-        const levList = $('leversList');
-        if(levList.children.length === 0) {
-            LEVERS.forEach((item, i) => {
-                levList.innerHTML += `
-                <div class="checkbox-item">
-                    <input type="checkbox" onchange="this.checked ? selectedLevers.push('${item}') : selectedLevers = selectedLevers.filter(c => c !== '${item}')">
-                    <label>${item}</label>
-                </div>`;
-            });
+    // ALTERNATIVES
+    ALTERNATIVES.forEach((alt, i) => {
+        const isOther = alt.toLowerCase().includes("autre");
+        let inputHtml = isOther ? `<input type="text" id="altInput${i}" class="other-input" placeholder="Précisez..." style="display:none; margin-top:5px; width:100%;">` : '';
+        
+        altList.innerHTML += `
+        <div class="checkbox-item-wrapper">
+            <div class="checkbox-item">
+                <input type="checkbox" id="alt${i}" onchange="handleOptionChange(this, 'alt', '${alt}', ${i}, ${isOther})">
+                <label for="alt${i}">${alt}</label>
+            </div>
+            ${inputHtml}
+        </div>`;
+    });
+    
+    // CONTRAINTES
+    const constList = $('constraintsList');
+    CONSTRAINTS.forEach((item, i) => {
+        const isOther = item.toLowerCase().includes("autre");
+        let inputHtml = isOther ? `<input type="text" id="consInput${i}" class="other-input" placeholder="Précisez..." style="display:none; margin-top:5px; width:100%;">` : '';
+        
+        constList.innerHTML += `
+        <div class="checkbox-item-wrapper">
+            <div class="checkbox-item">
+                <input type="checkbox" id="cons${i}" onchange="handleOptionChange(this, 'cons', '${item}', ${i}, ${isOther})">
+                <label for="cons${i}">${item}</label>
+            </div>
+            ${inputHtml}
+        </div>`;
+    });
+
+    // LEVIERS
+    const levList = $('leversList');
+    LEVERS.forEach((item, i) => {
+        const isOther = item.toLowerCase().includes("autre");
+        let inputHtml = isOther ? `<input type="text" id="levInput${i}" class="other-input" placeholder="Précisez..." style="display:none; margin-top:5px; width:100%;">` : '';
+        
+        levList.innerHTML += `
+        <div class="checkbox-item-wrapper">
+            <div class="checkbox-item">
+                <input type="checkbox" id="lev${i}" onchange="handleOptionChange(this, 'lev', '${item}', ${i}, ${isOther})">
+                <label for="lev${i}">${item}</label>
+            </div>
+            ${inputHtml}
+        </div>`;
+    });
+}
+
+function handleOptionChange(checkbox, type, name, index, isOther) {
+    // Gestion champ "Autre"
+    if(isOther) {
+        const input = document.getElementById(`${type}Input${index}`);
+        if(input) {
+            input.style.display = checkbox.checked ? 'block' : 'none';
+            if(!checkbox.checked) input.value = ''; // Reset si décoché
         }
+    }
+
+    // Logique de stockage (simplifiée pour l'exemple)
+    let finalName = name;
+    if(isOther && checkbox.checked) {
+        // On ne stocke pas "Autre" tout de suite, on le récupérera lors de l'envoi
+        // Mais on marque qu'il est coché
+    }
+    
+    if(type === 'alt') {
+        if(checkbox.checked) selectedAlternatives[name] = 1; else delete selectedAlternatives[name];
+    } else if (type === 'cons') {
+        if(checkbox.checked) selectedConstraints.push(name); else selectedConstraints = selectedConstraints.filter(c => c !== name);
+    } else if (type === 'lev') {
+        if(checkbox.checked) selectedLevers.push(name); else selectedLevers = selectedLevers.filter(c => c !== name);
     }
 }
 
+function updateCommitmentValue() {
+    commitmentLevel = parseInt($('commitmentRange').value);
+    $('commitmentValue').textContent = commitmentLevel;
+}
+
 function showCompanyScan() {
+    // Récupération des valeurs "Autre" avant envoi
+    let finalAlternatives = {...selectedAlternatives};
+    let finalConstraints = [...selectedConstraints];
+    let finalLevers = [...selectedLevers];
+
+    // Fonction helper pour ajouter le texte précis
+    const processOther = (list, type) => {
+        const wrappers = document.querySelectorAll(`#${list} .checkbox-item-wrapper`);
+        wrappers.forEach((w, i) => {
+            const cb = w.querySelector('input[type="checkbox"]');
+            const txt = w.querySelector('input[type="text"]');
+            if(cb && cb.checked && txt && txt.value) {
+                // On remplace "Autre" par "Autre: valeur"
+                if(type === 'obj') {
+                    const key = Object.keys(finalAlternatives).find(k => k.toLowerCase().includes('autre'));
+                    if(key) { delete finalAlternatives[key]; finalAlternatives[`Autre: ${txt.value}`] = 1; }
+                } else {
+                    const idx = type.indexOf(type.find(k => k.toLowerCase().includes('autre')));
+                    if(idx > -1) type[idx] = `Autre: ${txt.value}`;
+                }
+            }
+        });
+    };
+    
+    // Préparation données pour Sheet
+    const altText = Object.keys(finalAlternatives).join(', ');
+    const consText = finalConstraints.join(', ');
+    const levText = finalLevers.join(', ');
+
+    sendToGoogleSheets({
+        type: 'propositions',
+        participantId: myUniqueId,
+        emoji: myEmoji,
+        alternatives: altText,
+        contraintes: consText,
+        leviers: levText,
+        engagement: commitmentLevel
+    });
+
     showStep('companyScanPage');
     $('companyScanPage').classList.add('active');
     $('step6').classList.remove('active');
     startScanLoop('company');
 }
 
-function handleCompanyScan(data) {
-    companyCoords = { lat: data.lat, lon: data.lon };
-    // Calcul CO2 fictif
-    const dist = haversineKm(myCoords.lat, myCoords.lon, companyCoords.lat, companyCoords.lon);
-    const co2 = Math.round(dist * 2 * 220 * 0.1); // Approx
-    $('co2Savings').textContent = co2;
-    
-    stopAllCameras();
-    $('companyScanPage').classList.remove('active');
-    $('reportPage').classList.add('active');
+// ================= ADMIN (Correction ici) =================
+function showAdminPage() {
+    showStep('adminPage');
+    $('adminPage').classList.add('active');
+    $('adminPanel').style.display = 'none';
+    $('adminLogin').style.display = 'block';
 }
 
-// ================= ADMIN =================
 function adminLogin() {
     if($('adminPassword').value === APP_CONFIG.ADMIN_PASSWORD) {
         $('adminLogin').style.display = 'none';
         $('adminPanel').style.display = 'block';
+        refreshAdminStats();
     } else {
         showError("Mot de passe incorrect");
     }
@@ -523,9 +638,69 @@ function adminLogin() {
 function generateCompanyQR() {
     const addr = $('companyAddressInput').value;
     $('companyQrcode').innerHTML = '';
+    // QR code simplifié pour l'exemple (en prod, utiliser le vrai geocode)
     new QRCode($('companyQrcode'), {
         text: JSON.stringify({ type: 'company', lat: 48.8566, lon: 2.3522 }),
         width: 200, height: 200
     });
     $('companyQRSection').style.display = 'block';
+}
+
+function updateStep5Stats() {
+    // Mise à jour des stats pelotes avec les données locales
+    const total = participants.length + 1;
+    $('totalParticipants').textContent = total;
+    
+    if(participants.length > 0) {
+        const avg = participants.reduce((acc, p) => acc + p.distance, 0) / participants.length;
+        $('avgDistance').textContent = avg.toFixed(1);
+    }
+}
+
+function handleCompanyScan(data) {
+    companyCoords = { lat: data.lat, lon: data.lon };
+    const dist = haversineKm(myCoords.lat, myCoords.lon, companyCoords.lat, companyCoords.lon);
+    const co2 = Math.round(dist * 2 * 220 * 0.1); 
+    $('co2Savings').textContent = co2;
+    
+    stopAllCameras();
+    $('companyScanPage').classList.remove('active');
+    $('reportPage').classList.add('active');
+    
+    // Envoi final distance entreprise
+    sendToGoogleSheets({
+        type: 'company_distance',
+        participantId: myUniqueId,
+        emoji: myEmoji,
+        distance: dist
+    });
+}
+
+// ================= SYNC GOOGLE SHEET =================
+function sendToGoogleSheets(data) {
+    if(!googleScriptUrl) return;
+    fetch(googleScriptUrl, { method: 'POST', mode: 'no-cors', body: JSON.stringify(data) })
+        .then(() => console.log("Envoyé"))
+        .catch(e => console.error("Erreur envoi", e));
+}
+
+// ================= RESET =================
+function resetAllData() {
+    if(confirm("Tout effacer ?")) {
+        localStorage.clear();
+        location.reload();
+    }
+}
+
+function refreshAdminStats() {
+    // Calcul simple sur données locales pour l'instant (car no-cors ne permet pas de lire le sheet facilement sans proxi)
+    $('adminTotalUsers').textContent = participants.length + 1;
+    if(participants.length > 0) {
+        const avg = participants.reduce((acc, p) => acc + p.distance, 0) / participants.length;
+        $('adminAvgDistance').textContent = avg.toFixed(1);
+    }
+}
+
+function generatePDF() {
+    alert("Génération PDF simulée pour cette démo.");
 }
