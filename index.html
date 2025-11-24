@@ -175,7 +175,7 @@
             </div>
             <h3 style="margin-top:20px;">Données</h3>
             <button class="btn-primary" onclick="exportExcel()">📥 Exporter Excel</button>
-            <button class="btn-outline" style="border-color:#ef4444; color:#ef4444; margin-top:10px;" onclick="resetAllData()">🗑️ RESET COMPLET</button>
+            
             <div class="navigation-buttons"><button class="btn-outline" onclick="showStep(1)">Retour</button></div>
         </div>
       </div>
@@ -194,7 +194,10 @@
         <button class="btn-primary" onclick="saveMultimodal()" style="margin-top:10px;">Valider</button>
     </div></div>
 
+    <!-- Boutons flottants (Admin et Reset) -->
+    <button class="reset-floating-btn" onclick="resetGameSequence()">🔄</button>
     <button class="admin-floating-btn" onclick="showAdminPage()">🔐</button>
+    
     <canvas id="canvas" style="display:none;"></canvas>
   </div>
   <script src="config.js"></script>
