@@ -37,6 +37,7 @@ function $(id) { return document.getElementById(id); }
 function generateUniqueId() { return Math.random().toString(36).substr(2, 15); }
 function generateEmojiPseudo() { return EMOJI_SET[Math.floor(Math.random()*EMOJI_SET.length)] + EMOJI_SET[Math.floor(Math.random()*EMOJI_SET.length)] + EMOJI_SET[Math.floor(Math.random()*EMOJI_SET.length)]; }
 
+// TOASTS LISIBLES
 function showError(msg) {
     const errDiv = document.querySelector('.step.active .error-msg');
     if (errDiv && errDiv.offsetParent !== null) {
@@ -443,7 +444,7 @@ function resetGame() {
     $('gameResult').innerHTML = '';
 }
 
-// ================= FORMULAIRE AVEC HIERARCHIE CORRIGÉE =================
+// ================= FORMULAIRE AVEC HIERARCHIE =================
 function initStep6Form() {
     const createFields = (listId, items, type) => {
         const list = $(listId);
@@ -480,7 +481,6 @@ function handleOptionChange(checkbox, type, name, index, isOther) {
         if(input) input.style.display = checkbox.checked ? 'block' : 'none';
     }
     
-    // CORRECTION: Nommage dynamique de l'ID (ex: prioAlt0, prioCons0, prioLev0)
     const capType = type.charAt(0).toUpperCase() + type.slice(1);
     const prioSelect = document.getElementById(`prio${capType}${index}`);
     
@@ -634,9 +634,26 @@ async function exportExcel() {
         const data = await res.json();
         
         const wb = XLSX.utils.book_new();
-        if(data.participants) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data.participants), "Participants");
-        if(data.scans) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data.scans), "Scans");
-        XLSX.writeFile(wb, "Atelier_Mobilite_Export.xlsx");
+        // MERGE INTELLIGENT POUR L'EXPORT
+        // On crée une feuille "MASTER" qui regroupe tout
+        if(data.participants) {
+            const masterData = data.participants.map(user => {
+                // Trouver les propositions associées (si dispo)
+                const props = data.propositions ? data.propositions.find(p => p['Emoji'] === user['Emoji']) : {};
+                return {
+                    ...user, 
+                    ...(props || {}),
+                    "Distance Domicile-Travail": data.distances ? (data.distances.find(d => d['Emoji'] === user['Emoji'])?.Distance || "") : ""
+                };
+            });
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(masterData), "Master Data");
+        }
+
+        // Feuilles brutes de secours
+        if(data.participants) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data.participants), "Raw_Participants");
+        if(data.scans) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data.scans), "Raw_Scans");
+        
+        XLSX.writeFile(wb, "Atelier_Mobilité_Complet.xlsx");
         showSuccess("Export réussi !");
         
     } catch(e) {
@@ -657,7 +674,6 @@ function refreshAdminStats() {
     }
 }
 
-// GÉNÉRATION PDF CORRIGÉE ET COMPLÈTE
 function generatePDF() {
     const alt = localStorage.getItem('finalAlternatives') || "Aucune";
     const cons = localStorage.getItem('finalConstraints') || "Aucune";
