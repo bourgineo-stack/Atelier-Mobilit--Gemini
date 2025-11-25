@@ -31,25 +31,24 @@ function $(id) { return document.getElementById(id); }
 function generateUniqueId() { return Math.random().toString(36).substr(2, 15); }
 function generateEmojiPseudo() { return EMOJI_SET[Math.floor(Math.random()*EMOJI_SET.length)] + EMOJI_SET[Math.floor(Math.random()*EMOJI_SET.length)] + EMOJI_SET[Math.floor(Math.random()*EMOJI_SET.length)]; }
 
+// TOASTS LISIBLES & PRO
 function showError(msg) {
-    const errDiv = document.querySelector('.step.active .error-msg');
-    if (errDiv) {
-        errDiv.textContent = msg;
-        setTimeout(() => errDiv.textContent = '', 3000);
-    } else {
-        alert("❌ " + msg);
-    }
+    const div = document.createElement('div');
+    div.className = 'toast-msg error';
+    div.innerHTML = `<span>❌</span> <span>${msg}</span>`;
+    document.body.appendChild(div);
+    setTimeout(() => div.remove(), 3000);
 }
 
 function showSuccess(msg) {
     const div = document.createElement('div');
-    div.className = 'success-msg';
-    div.style.position = 'fixed'; div.style.top = '20px'; div.style.left='50%'; div.style.transform='translateX(-50%)';
-    div.style.background = 'rgba(16, 185, 129, 0.9)'; div.style.padding = '10px 20px'; div.style.borderRadius = '20px'; div.style.zIndex='9999';
-    div.textContent = msg;
+    div.className = 'toast-msg success';
+    div.innerHTML = `<span>✅</span> <span>${msg}</span>`;
     document.body.appendChild(div);
     setTimeout(() => div.remove(), 3000);
 }
+
+// ... (Reste du code inchangé) ...
 
 // ================= INIT & NAVIGATION =================
 document.addEventListener('DOMContentLoaded', () => {
@@ -572,7 +571,7 @@ function generateCompanyQR() {
         text: JSON.stringify({ type: 'company', lat: 48.8566, lon: 2.3522 }), // Coordonnées fictives Paris pour démo
         width: 200, height: 200
     });
-    $('companyQRSection').style.display = 'block';
+    $('companyQRSection').style.display = 'flex'; // Centrage
 }
 
 function updateStep5Stats() {
