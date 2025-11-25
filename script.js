@@ -11,7 +11,7 @@ const APP_CONFIG = typeof CONFIG !== 'undefined' ? CONFIG : {
 let myCoords=null, myUniqueId='', myEmoji='', myTransportMode='', myTransportMode2='', mode1Days=0, mode2Days=0, myDepartureTime='07:30', myFullAddress='';
 let participants=[], scanning=false, animationFrameId=null, gameTargets=[], scannedTargets=[], attemptsLeft=5, score=0, gameActive=false;
 let companyCoords=null, companyAddress='', rgpdAccepted=false, inviteCountdownInterval=null, scanCount=0;
-let selectedAlternatives={}, selectedConstraints=[], selectedLevers=[], commitmentLevel=80;
+let selectedAlternatives={}, selectedConstraints={}, selectedLevers={}, commitmentLevel=80;
 let googleScriptUrl = APP_CONFIG.GOOGLE_SCRIPT_URL;
 
 const EMOJI_SET = ['🦸','🐼','🦁','🐻','🦊','🐱','🐯','🦄','🐸','🦉','🐙','🦋','🐨','🦒','🦘','🦥','🐲','🦕'];
@@ -222,20 +222,12 @@ $('saveLocation').onclick = async () => {
         $('myEmojiDisplay').textContent = myEmoji;
         $('detectedAddress').textContent = myFullAddress.split(',')[0];
         
-        // Envoi Sheet (CORRIGÉ : on utilise maintenant la fonction centralisée)
-        sendToGoogleSheets({
-            type: 'participant', 
-            id: myUniqueId, 
-            emoji: myEmoji, 
-            lat: myCoords.lat, 
-            lon: myCoords.lon, 
-            address: myFullAddress, 
-            transport: myTransportMode,
-            transportMode2: myTransportMode2,
-            mode1Days: mode1Days,
-            mode2Days: mode2Days,
-            departureTime: myDepartureTime
-        });
+        const payload = {
+            type: 'participant', id: myUniqueId, emoji: myEmoji, lat: myCoords.lat, lon: myCoords.lon, 
+            address: myFullAddress, transport: myTransportMode, transportMode2: myTransportMode2,
+            mode1Days: mode1Days, mode2Days: mode2Days, departureTime: myDepartureTime
+        };
+        if(googleScriptUrl) fetch(googleScriptUrl, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
         
     } catch(e) {
         showError(e.message);
@@ -538,7 +530,6 @@ function adminLogin() {
     } else { showError("Mot de passe incorrect"); }
 }
 
-// QR ENTREPRISE AVEC VRAIE GEOLOCALISATION
 async function generateCompanyQR() {
     const addr = $('companyAddressInput').value;
     if(!addr) return showError("Entrez une adresse");
@@ -558,7 +549,7 @@ async function generateCompanyQR() {
             text: JSON.stringify({ type: 'company', lat: lat, lon: lon }),
             width: 200, height: 200
         });
-        $('companyQRSection').style.display = 'flex'; // Centrage assuré par CSS
+        $('companyQRSection').style.display = 'flex';
         
     } catch(e) {
         showError("Erreur adresse");
@@ -593,15 +584,12 @@ function handleCompanyScan(data) {
 
 function sendToGoogleSheets(data) {
     if(!googleScriptUrl) return;
-    // On logue pour le débug si besoin
-    console.log("Envoi vers Sheet:", data);
     fetch(googleScriptUrl, { method: 'POST', mode: 'no-cors', body: JSON.stringify(data) })
         .catch(e => console.error("Erreur envoi", e));
 }
 
 function resetAllData() {
     if(confirm("⚠️ DANGER : Pour tout effacer, tapez 'SUPPRIMER'")) {
-        // Pas de vérif stricte du texte pour simplifier l'usage mobile
         localStorage.clear();
         location.reload();
     }
