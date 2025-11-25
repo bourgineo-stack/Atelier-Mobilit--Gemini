@@ -28,7 +28,7 @@
         </div>
     </header>
 
-    <!-- Notice RGPD COMPLÈTE -->
+    <!-- Notice RGPD -->
     <div id="rgpdNotice" class="card glass-effect" style="border-left: 4px solid #10b981;">
       <p style="font-size: 0.9em; margin-bottom: 15px;">
         ℹ️ Vos données sont stockées temporairement pour l'atelier.
@@ -50,7 +50,7 @@
         <div id="locationSection" style="display: none;">
           <h3>📍 Profil</h3>
           <div class="input-group"><label>Adresse</label><input id="userAddress" placeholder="Ex: 10 rue de la Liberté" /></div>
-          <div class="input-group"><label>Mode</label>
+          <div class="input-group"><label>Mode principal</label>
             <select id="transportMode">
                 <option value="">-- Choisir --</option>
                 <option value="car-thermal">🚗 Voiture thermique</option>
@@ -61,10 +61,11 @@
                 <option value="bike">🚲 Vélo</option>
                 <option value="ebike">🚴 Vélo élec</option>
                 <option value="walk">🚶 Marche</option>
+                <option value="remote">💻 Télétravail</option>
             </select>
           </div>
           <div class="input-group"><label>Départ</label><input type="time" id="departureTime" value="07:30" /></div>
-          <div style="text-align:center; margin:15px 0;"><label class="checkbox-item"><input type="checkbox" id="multimodalCheck" onchange="toggleMultimodal()"> Modes multiples</label></div>
+          <div style="text-align:center; margin:15px 0;"><label class="checkbox-item"><input type="checkbox" id="multimodalCheck" onchange="toggleMultimodal()"> J'alterne entre plusieurs modes</label></div>
           <button class="btn-primary" id="saveLocation">Valider</button>
         </div>
         <div id="afterLocationSection" style="display: none;">
@@ -173,7 +174,7 @@
         <div id="adminPanel" style="display:none;">
             <h3>QR Entreprise</h3>
             <input id="companyAddressInput" placeholder="Adresse" /><button class="btn-primary" onclick="generateCompanyQR()">Générer</button>
-            <div id="companyQRSection" style="display:none; display:flex; justify-content:center; background:white; padding:10px; border-radius:10px; margin-top:10px;">
+            <div id="companyQRSection" style="display:none; background:white; padding:10px; border-radius:10px; margin-top:10px;">
                 <div id="companyQrcode"></div>
             </div>
             <h3 style="margin-top:20px;">Données</h3>
@@ -189,15 +190,45 @@
         <div class="card glass-effect"><h2>Inviter</h2><div id="inviteTimer"></div><div class="qr-wrapper"><div id="inviteQrcode"></div></div><button class="btn-outline" onclick="showStep(1)">Retour</button></div>
     </div>
 
-    <!-- Modale Multimodal -->
-    <div id="multimodalModal" class="modal"><div class="modal-content glass-effect" style="background:#1e293b;">
-        <h2>Modes Multiples</h2>
-        <select id="transportMode2"><option value="car-thermal">Voiture</option><option value="bike">Vélo</option></select>
-        <div style="display:flex; gap:10px; margin-top:10px;"><input id="mode1Days" value="3" style="width:50px;">j Princ <input id="mode2Days" value="2" style="width:50px;">j Sec</div>
-        <button class="btn-primary" onclick="saveMultimodal()" style="margin-top:10px;">Valider</button>
-    </div></div>
+    <!-- Modale Multimodal REVUE -->
+    <div id="multimodalModal" class="modal">
+      <div class="modal-content glass-effect" style="background:#1e293b;">
+        <h2>🔄 Modes Multiples</h2>
+        <label>Choix du mode secondaire :</label>
+        <select id="transportMode2" style="margin-top:10px;">
+            <option value="">-- Choisir --</option>
+            <option value="car-thermal">🚗 Voiture thermique</option>
+            <option value="car-electric">⚡ Voiture élec</option>
+            <option value="carpool">🚙 Covoiturage</option>
+            <option value="train">🚆 Train/RER</option>
+            <option value="bus">🚌 Bus/Tram</option>
+            <option value="bike">🚲 Vélo</option>
+            <option value="ebike">🚴 Vélo élec</option>
+            <option value="walk">🚶 Marche</option>
+            <option value="remote">💻 Télétravail</option>
+        </select>
+        
+        <p style="margin: 15px 0; font-weight:bold; opacity:0.8;">Répartition (jours par semaine) :</p>
+        <div style="display:flex; gap:10px; align-items:center; justify-content:center; margin-bottom:20px;">
+            <div style="text-align:center;">
+                <input type="number" id="mode1Days" value="3" min="0" max="5" style="width:60px; text-align:center;">
+                <div style="font-size:0.8em; margin-top:5px;">Jours Mode 1</div>
+            </div>
+            <div style="font-size:1.5em; opacity:0.5;">/</div>
+            <div style="text-align:center;">
+                <input type="number" id="mode2Days" value="2" min="0" max="5" style="width:60px; text-align:center;">
+                <div style="font-size:0.8em; margin-top:5px;">Jours Mode 2</div>
+            </div>
+        </div>
+        
+        <div class="navigation-buttons">
+            <button class="btn-outline" onclick="closeMultimodal()">Annuler</button>
+            <button class="btn-primary" onclick="saveMultimodal()">Valider</button>
+        </div>
+      </div>
+    </div>
 
-    <!-- Boutons flottants (Admin et Reset) -->
+    <!-- Boutons flottants -->
     <button class="reset-floating-btn" onclick="resetGameSequence()">🔄</button>
     <button class="admin-floating-btn" onclick="showAdminPage()">🔐</button>
     
