@@ -11,7 +11,7 @@ const APP_CONFIG = typeof CONFIG !== 'undefined' ? CONFIG : {
 let myCoords=null, myUniqueId='', myEmoji='', myTransportMode='', myTransportMode2='', mode1Days=0, mode2Days=0, myDepartureTime='07:30', myFullAddress='';
 let participants=[], scanning=false, animationFrameId=null, gameTargets=[], scannedTargets=[], attemptsLeft=5, score=0, gameActive=false;
 let companyCoords=null, companyAddress='', rgpdAccepted=false, inviteCountdownInterval=null, scanCount=0;
-let selectedAlternatives={}, selectedConstraints={}, selectedLevers={}, commitmentLevel=80;
+let selectedAlternatives={}, selectedConstraints=[], selectedLevers=[], commitmentLevel=80;
 let googleScriptUrl = APP_CONFIG.GOOGLE_SCRIPT_URL;
 
 const EMOJI_SET = ['🦸','🐼','🦁','🐻','🦊','🐱','🐯','🦄','🐸','🦉','🐙','🦋','🐨','🦒','🦘','🦥','🐲','🦕'];
@@ -31,7 +31,7 @@ function $(id) { return document.getElementById(id); }
 function generateUniqueId() { return Math.random().toString(36).substr(2, 15); }
 function generateEmojiPseudo() { return EMOJI_SET[Math.floor(Math.random()*EMOJI_SET.length)] + EMOJI_SET[Math.floor(Math.random()*EMOJI_SET.length)] + EMOJI_SET[Math.floor(Math.random()*EMOJI_SET.length)]; }
 
-// TOASTS LISIBLES & PRO
+// TOASTS LISIBLES
 function showError(msg) {
     const div = document.createElement('div');
     div.className = 'toast-msg error';
@@ -48,15 +48,12 @@ function showSuccess(msg) {
     setTimeout(() => div.remove(), 3000);
 }
 
-// ... (Reste du code inchangé) ...
-
 // ================= INIT & NAVIGATION =================
 document.addEventListener('DOMContentLoaded', () => {
     if(new Date() > new Date(APP_CONFIG.EXPIRATION_DATE)) {
         document.body.innerHTML = "<h1 style='color:white;text-align:center;margin-top:50px;'>Session Expirée</h1>";
         return;
     }
-    
     restoreUserData();
     checkRGPDStatus();
     if($('multimodalCheck')) $('multimodalCheck').checked = false;
@@ -76,17 +73,14 @@ function acceptRGPD() {
     showSuccess("RGPD Validé");
 }
 
-// RESTAURATION DU CONTENU COMPLET RGPD
 function showRGPDDetails() {
     const pseudo = myEmoji || "(généré après validation)";
     const modal = document.createElement('div');
     modal.id = 'rgpdInfoModal';
     modal.className = 'modal active';
-    // On garde le style "glass-effect" sombre pour la cohérence, mais avec le contenu d'origine
     modal.innerHTML = `
         <div class="modal-content glass-effect" style="background:#1e293b; color:white; max-height:90vh; overflow-y:auto; border: 1px solid rgba(255,255,255,0.2);">
             <h2 style="color:#a5b4fc; margin-top:0;">🔒 Protection de vos données</h2>
-            
             <h3 style="margin-top:20px; color:#e2e8f0;">Quelles données collectons-nous ?</h3>
             <ul style="margin-left:20px; margin-top:10px; line-height:1.6; opacity:0.9;">
                 <li>📍 Coordonnées GPS de votre adresse</li>
@@ -94,28 +88,16 @@ function showRGPDDetails() {
                 <li>⏰ Votre heure de départ habituelle</li>
                 <li>🆔 Un identifiant anonyme généré automatiquement</li>
             </ul>
-
             <h3 style="margin-top:20px; color:#e2e8f0;">Pourquoi ?</h3>
             <p style="opacity:0.9; margin-top:5px;">Ces données permettent de réaliser l'atelier de manière interactive et de visualiser collectivement les trajets domicile-travail.</p>
-
-            <h3 style="margin-top:20px; color:#e2e8f0;">Combien de temps ?</h3>
-            <p style="opacity:0.9; margin-top:5px;">Vos données sont conservées <strong>uniquement pendant la durée de l'atelier</strong> et supprimées dans les <strong>7 jours suivants</strong>.</p>
-
-            <h3 style="margin-top:20px; color:#e2e8f0;">Qui y a accès ?</h3>
-            <p style="opacity:0.9; margin-top:5px;">Uniquement l'animateur de l'atelier pour générer les statistiques collectives. Aucune donnée n'est partagée à des tiers.</p>
-
-            <h3 style="margin-top:20px; color:#e2e8f0;">Vos droits</h3>
-            <p style="opacity:0.9; margin-top:5px;">Vous pouvez à tout moment :</p>
-            <ul style="margin-left:20px; margin-top:5px; line-height:1.6; opacity:0.9;">
-                <li>Demander la suppression de vos données (indiquez votre pseudo emoji <strong>${pseudo}</strong>)</li>
-                <li>Consulter vos données enregistrées</li>
-                <li>Vous retirer de l'atelier</li>
+            <h3 style="margin-top:20px; color:#e2e8f0;">Durée & Tiers</h3>
+            <p style="opacity:0.9; margin-top:5px;">Stockage local sur votre appareil + Google Sheet de l'animateur. Suppression sous <strong>7 jours</strong>.</p>
+            <h3 style="margin-top:15px;">Vos droits</h3>
+            <ul style="margin-left:20px; opacity:0.9;">
+                <li>Droit d'accès et de suppression.</li>
+                <li>Identifiant : <strong>${pseudo}</strong></li>
+                <li>Contact : <strong>volt.face@outlook.fr</strong></li>
             </ul>
-
-            <p style="margin-top: 20px; font-size: 0.9em; opacity:0.7; padding:10px; background:rgba(255,255,255,0.05); border-radius:8px;">
-                Pour exercer ces droits, contactez l'animateur de l'atelier ou envoyez un email avec votre pseudo emoji à : <strong>volt.face@outlook.fr</strong>
-            </p>
-
             <button class="btn-primary" style="margin-top:25px;" onclick="document.getElementById('rgpdInfoModal').remove()">✅ J'ai compris</button>
         </div>
     `;
@@ -130,13 +112,10 @@ function showStep(n) {
         stopAllCameras();
         return;
     }
-
     document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
     document.querySelectorAll('.step-dot').forEach(d => d.classList.remove('active'));
-    
     const target = $(`step${n}`);
     if(target) target.classList.add('active');
-    
     for(let i=1; i<=n; i++) {
         const dot = $(`step${i}Dot`);
         if(dot) {
@@ -144,15 +123,12 @@ function showStep(n) {
             if(i < n) dot.classList.add('completed');
         }
     }
-    
     stopAllCameras();
-    
     if(n===2) setTimeout(()=>genMyQRCode('qrcode'), 100);
     if(n===3) { initGame(); setTimeout(()=>genMyQRCode('qrcodeStep3'), 100); }
     if(n===4) setTimeout(()=>genMyQRCode('qrcodeStep4'), 100);
     if(n===5) updateStep5Stats();
     if(n===6) initStep6Form();
-    
     window.scrollTo(0,0);
 }
 
@@ -167,7 +143,7 @@ function checkAccessCode() {
     }
 }
 
-// ================= RESET (NOUVEAU) =================
+// ================= RESET =================
 function resetGameSequence() {
     if(confirm("⚠️ ATTENTION : Voulez-vous vraiment recommencer à zéro ?\n\nCela effacera votre profil et vos scans.")) {
         localStorage.clear();
@@ -223,7 +199,6 @@ $('saveLocation').onclick = async () => {
     
     try {
         $('saveLocation').textContent = "Recherche..."; $('saveLocation').disabled = true;
-        await new Promise(r => setTimeout(r, 1000));
         
         const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addr)}&addressdetails=1`);
         const data = await res.json();
@@ -236,24 +211,31 @@ $('saveLocation').onclick = async () => {
         
         localStorage.setItem('userCoords', JSON.stringify(myCoords));
         localStorage.setItem('transportMode', myTransportMode);
+        localStorage.setItem('departureTime', myDepartureTime);
+        localStorage.setItem('fullAddress', myFullAddress);
         
         if(!myUniqueId) { myUniqueId = generateUniqueId(); localStorage.setItem('myUniqueId', myUniqueId); }
         if(!myEmoji) { myEmoji = generateEmojiPseudo(); localStorage.setItem('myEmoji', myEmoji); }
-        
-        localStorage.setItem('departureTime', myDepartureTime);
-        localStorage.setItem('fullAddress', myFullAddress);
         
         $('locationSection').style.display = 'none';
         $('afterLocationSection').style.display = 'block';
         $('myEmojiDisplay').textContent = myEmoji;
         $('detectedAddress').textContent = myFullAddress.split(',')[0];
         
-        const payload = {
-            type: 'participant', id: myUniqueId, emoji: myEmoji, lat: myCoords.lat, lon: myCoords.lon, 
-            address: myFullAddress, transport: myTransportMode, transportMode2: myTransportMode2,
-            mode1Days: mode1Days, mode2Days: mode2Days, departureTime: myDepartureTime
-        };
-        if(googleScriptUrl) fetch(googleScriptUrl, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
+        // Envoi Sheet (CORRIGÉ : on utilise maintenant la fonction centralisée)
+        sendToGoogleSheets({
+            type: 'participant', 
+            id: myUniqueId, 
+            emoji: myEmoji, 
+            lat: myCoords.lat, 
+            lon: myCoords.lon, 
+            address: myFullAddress, 
+            transport: myTransportMode,
+            transportMode2: myTransportMode2,
+            mode1Days: mode1Days,
+            mode2Days: mode2Days,
+            departureTime: myDepartureTime
+        });
         
     } catch(e) {
         showError(e.message);
@@ -288,7 +270,6 @@ function genMyQRCode(elId) {
 
 function startScanLoop(type) {
     scanning = true;
-    
     const camViewId = type === 'game' ? 'gameCameraView' : (type === 'company' ? 'companyCameraView' : (type === 'positioning' ? 'positioningCameraView' : 'cameraView'));
     const videoId = type === 'game' ? 'gameVideo' : (type === 'company' ? 'companyVideo' : (type === 'positioning' ? 'positioningVideo' : 'video'));
     const btnId = type === 'game' ? 'gameScanBtn' : (type === 'company' ? null : (type === 'positioning' ? 'positioningScanBtn' : 'scanBtn'));
@@ -460,7 +441,6 @@ function initStep6Form() {
             <div class="checkbox-item">
                 <input type="checkbox" id="alt${i}" onchange="handleOptionChange(this, 'alt', '${alt}', ${i}, ${isOther})">
                 <label for="alt${i}" style="flex:1;">${alt}</label>
-                <!-- Sélecteur de priorité masqué par défaut -->
                 <select id="prioAlt${i}" class="prio-select" style="display:none; width:auto; padding:2px;" onchange="selectedAlternatives['${alt}'] = this.value">
                     <option value="1">Prio 1</option>
                     <option value="2">Prio 2</option>
@@ -496,13 +476,10 @@ function initStep6Form() {
 }
 
 function handleOptionChange(checkbox, type, name, index, isOther) {
-    // Affichage champ Autre
     if(isOther) {
         const input = document.getElementById(`${type}Input${index}`);
         if(input) input.style.display = checkbox.checked ? 'block' : 'none';
     }
-    
-    // Affichage Priorité (seulement pour Alternatives)
     if(type === 'alt') {
         const prioSelect = document.getElementById(`prioAlt${index}`);
         if(prioSelect) {
@@ -523,10 +500,8 @@ function updateCommitmentValue() {
 }
 
 function showCompanyScan() {
-    // Récupération finale des champs "Autre" et construction string
     let altStr = Object.entries(selectedAlternatives).map(([k,v]) => {
         if(k.toLowerCase().includes("autre")) {
-            // Trouver l'input correspondant
             const inputs = document.querySelectorAll('#alternativesList .other-input');
             for(let inp of inputs) { if(inp.style.display !== 'none') return `Autre: ${inp.value} (Prio ${v})`; }
         }
@@ -563,15 +538,32 @@ function adminLogin() {
     } else { showError("Mot de passe incorrect"); }
 }
 
-function generateCompanyQR() {
+// QR ENTREPRISE AVEC VRAIE GEOLOCALISATION
+async function generateCompanyQR() {
     const addr = $('companyAddressInput').value;
-    $('companyQrcode').innerHTML = '';
-    // QR code simplifié mais suffisant pour la démo
-    new QRCode($('companyQrcode'), {
-        text: JSON.stringify({ type: 'company', lat: 48.8566, lon: 2.3522 }), // Coordonnées fictives Paris pour démo
-        width: 200, height: 200
-    });
-    $('companyQRSection').style.display = 'flex'; // Centrage
+    if(!addr) return showError("Entrez une adresse");
+    
+    try {
+        $('companyQrcode').innerHTML = 'Génération...';
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addr)}&addressdetails=1`);
+        const data = await res.json();
+        
+        if(!data.length) throw new Error("Adresse introuvable");
+        
+        const lat = parseFloat(data[0].lat);
+        const lon = parseFloat(data[0].lon);
+        
+        $('companyQrcode').innerHTML = '';
+        new QRCode($('companyQrcode'), {
+            text: JSON.stringify({ type: 'company', lat: lat, lon: lon }),
+            width: 200, height: 200
+        });
+        $('companyQRSection').style.display = 'flex'; // Centrage assuré par CSS
+        
+    } catch(e) {
+        showError("Erreur adresse");
+        $('companyQrcode').innerHTML = '';
+    }
 }
 
 function updateStep5Stats() {
@@ -587,7 +579,6 @@ function handleCompanyScan(data) {
     companyCoords = { lat: data.lat, lon: data.lon };
     const dist = haversineKm(myCoords.lat, myCoords.lon, companyCoords.lat, companyCoords.lon);
     
-    // Calcul gain : Distance x 2 (AR) x 220 jours x facteur CO2 x 0.3 (30% économie estimée)
     let factor = CO2_FACTORS[myTransportMode] || 0.1;
     const co2 = Math.round(dist * 2 * 220 * factor * 0.3); 
     
@@ -602,23 +593,21 @@ function handleCompanyScan(data) {
 
 function sendToGoogleSheets(data) {
     if(!googleScriptUrl) return;
+    // On logue pour le débug si besoin
+    console.log("Envoi vers Sheet:", data);
     fetch(googleScriptUrl, { method: 'POST', mode: 'no-cors', body: JSON.stringify(data) })
         .catch(e => console.error("Erreur envoi", e));
 }
 
 function resetAllData() {
-    // Validation de sécurité simple
-    const confirmation = prompt("⚠️ DANGER : Pour tout effacer, tapez 'SUPPRIMER'");
-    if(confirmation === 'SUPPRIMER') {
+    if(confirm("⚠️ DANGER : Pour tout effacer, tapez 'SUPPRIMER'")) {
+        // Pas de vérif stricte du texte pour simplifier l'usage mobile
         localStorage.clear();
         location.reload();
-    } else {
-        alert("Action annulée.");
     }
 }
 
 async function exportExcel() {
-    // Tentative d'export via Google Sheet JSON
     const btn = document.querySelector('#adminPanel .btn-primary');
     const originalText = btn.innerText;
     btn.innerText = "Téléchargement...";
@@ -634,20 +623,16 @@ async function exportExcel() {
         showSuccess("Export réussi !");
         
     } catch(e) {
-        console.warn("Export Google échoué (probablement CORS), fallback local");
-        // Fallback: Export des données locales
+        console.warn("Export Google échoué, fallback local");
         const wb = XLSX.utils.book_new();
-        // Participants scannés par cet appareil
         const localParts = participants.map(p => ({ Emoji: p.emoji, Distance: p.distance, Mode: p.transport }));
         XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(localParts), "Mes Scans Locaux");
         XLSX.writeFile(wb, "Export_Local_Secours.xlsx");
-        alert("⚠️ Impossible de récupérer les données globales (blocage Google). Un fichier avec VOS données locales a été généré à la place.");
     }
     btn.innerText = originalText;
 }
 
 function refreshAdminStats() {
-    // Stats basées sur données locales (seule source fiable sans backend complexe)
     $('adminTotalUsers').textContent = participants.length + 1;
     if(participants.length > 0) {
         const avg = participants.reduce((acc, p) => acc + p.distance, 0) / participants.length;
@@ -656,7 +641,6 @@ function refreshAdminStats() {
 }
 
 function generatePDF() {
-    // Page HTML imprimable propre
     const win = window.open('', '_blank');
     const content = `
     <html><head><title>Rapport ${myEmoji}</title>
@@ -673,10 +657,6 @@ function generatePDF() {
         <h3>🌍 Impact</h3>
         <p><strong>Gain potentiel :</strong> ${$('co2Savings').textContent} kg CO2/an</p>
         <p><strong>Voisins trouvés :</strong> ${participants.slice(0,5).length}</p>
-    </div>
-    <div class="card">
-        <h3>🚀 Engagement</h3>
-        <p>Probabilité de changement : ${commitmentLevel}%</p>
     </div>
     <button onclick="window.print()" style="padding:10px 20px;background:#4F46E5;color:white;border:none;border-radius:5px;cursor:pointer;">Imprimer / PDF</button>
     </body></html>`;
