@@ -11,10 +11,12 @@ const APP_CONFIG = typeof CONFIG !== 'undefined' ? CONFIG : {
 let myCoords=null, myUniqueId='', myEmoji='', myTransportMode='', myTransportMode2='', mode1Days=0, mode2Days=0, myDepartureTime='07:30', myFullAddress='';
 let participants=[], scanning=false, animationFrameId=null, gameTargets=[], scannedTargets=[], attemptsLeft=5, score=0, gameActive=false;
 let companyCoords=null, companyAddress='', rgpdAccepted=false, inviteCountdownInterval=null, scanCount=0;
-
-// MAINTENANT TOUT EST STOCKÉ SOUS FORME D'OBJET { "Nom": "Priorité" }
 let selectedAlternatives={}, selectedConstraints={}, selectedLevers={}, commitmentLevel=80;
 let googleScriptUrl = APP_CONFIG.GOOGLE_SCRIPT_URL;
+
+// Canvas global pour le scan (Optimisation performance)
+let scanCanvas = null;
+let scanCtx = null;
 
 const EMOJI_SET = ['🦸','🐼','🦁','🐻','🦊','🐱','🐯','🦄','🐸','🦉','🐙','🦋','🐨','🦒','🦘','🦥','🐲','🦕'];
 const CO2_FACTORS = { 'car-thermal': 0.193, 'car-electric': 0.020, 'carpool': 0.096, 'train': 0.006, 'bus': 0.103, 'bike': 0, 'ebike': 0.002, 'walk': 0, 'remote': 0 };
@@ -64,6 +66,13 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.innerHTML = "<h1 style='color:white;text-align:center;margin-top:50px;'>Session Expirée</h1>";
         return;
     }
+    
+    // Init Canvas une seule fois pour perf
+    scanCanvas = document.getElementById('canvas');
+    if(scanCanvas) {
+        scanCtx = scanCanvas.getContext('2d', { willReadFrequently: true });
+    }
+
     restoreUserData();
     checkRGPDStatus();
     if($('multimodalCheck')) $('multimodalCheck').checked = false;
@@ -274,6 +283,7 @@ function genMyQRCode(elId) {
 
 function startScanLoop(type) {
     scanning = true;
+    
     const camViewId = type === 'game' ? 'gameCameraView' : (type === 'company' ? 'companyCameraView' : (type === 'positioning' ? 'positioningCameraView' : 'cameraView'));
     const videoId = type === 'game' ? 'gameVideo' : (type === 'company' ? 'companyVideo' : (type === 'positioning' ? 'positioningVideo' : 'video'));
     const btnId = type === 'game' ? 'gameScanBtn' : (type === 'company' ? null : (type === 'positioning' ? 'positioningScanBtn' : 'scanBtn'));
@@ -284,6 +294,7 @@ function startScanLoop(type) {
     if($(stopBtnId)) $(stopBtnId).style.display = 'block';
 
     const video = $(videoId);
+    
     navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
     .then(stream => {
         video.srcObject = stream;
@@ -296,12 +307,23 @@ function startScanLoop(type) {
 
 function tick(video, type) {
     if(!scanning) return;
+    
     if(video.readyState === video.HAVE_ENOUGH_DATA) {
-        const canvas = document.createElement('canvas');
-        canvas.width = video.videoWidth; canvas.height = video.videoHeight;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(video, 0, 0);
-        const code = jsQR(ctx.getImageData(0,0,canvas.width,canvas.height).data, canvas.width, canvas.height);
+        // Utilisation du Canvas global pour éviter la fuite de mémoire
+        if(!scanCanvas) {
+            scanCanvas = document.getElementById('canvas');
+            scanCtx = scanCanvas.getContext('2d', { willReadFrequently: true });
+        }
+        
+        scanCanvas.width = video.videoWidth;
+        scanCanvas.height = video.videoHeight;
+        scanCtx.drawImage(video, 0, 0);
+        
+        // Scan
+        const imageData = scanCtx.getImageData(0, 0, scanCanvas.width, scanCanvas.height);
+        const code = jsQR(imageData.data, imageData.width, imageData.height, {
+            inversionAttempts: "dontInvert",
+        });
         
         if(code) {
             try {
@@ -313,8 +335,17 @@ function tick(video, type) {
                     else if(type === 'positioning') success = handlePositioningScan(data);
                     else success = addParticipant(data);
                 }
+                
                 if(success) stopAllCameras();
-            } catch(e) {}
+                else {
+                    // Feedback si QR valide mais refusé (ex: déjà scanné)
+                    // On ne stoppe pas, on continue de scanner
+                }
+                
+            } catch(e) {
+                // Ce n'est pas un de nos QR codes (format JSON invalide)
+                console.log("QR ignoré");
+            }
         }
     }
     if(scanning) requestAnimationFrame(() => tick(video, type));
@@ -653,48 +684,28 @@ function refreshAdminStats() {
 }
 
 function generatePDF() {
-    const alt = localStorage.getItem('finalAlternatives') || "Aucune";
-    const cons = localStorage.getItem('finalConstraints') || "Aucune";
-    const lev = localStorage.getItem('finalLevers') || "Aucun";
-
     const win = window.open('', '_blank');
     const content = `
     <html><head><title>Rapport ${myEmoji}</title>
-    <style>
-        body{font-family:sans-serif;padding:20px;color:#333;max-width:800px;margin:0 auto;} 
-        h1{color:#4F46E5;text-align:center;border-bottom:2px solid #4F46E5;padding-bottom:10px;} 
-        h2{color:#4F46E5;margin-top:20px;font-size:1.2em;}
-        .card{border:1px solid #e2e8f0;padding:20px;border-radius:10px;margin-bottom:20px;background:#f8fafc;}
-        .tag{display:inline-block;background:#e0e7ff;color:#4338ca;padding:2px 8px;border-radius:12px;font-size:0.9em;margin:2px;}
-        .btn{display:block;width:100%;padding:15px;background:#4F46E5;color:white;text-align:center;text-decoration:none;border-radius:8px;margin-top:20px;font-weight:bold;}
-    </style>
+    <style>body{font-family:sans-serif;padding:20px;color:#333;} h1{color:#4F46E5;} .card{border:1px solid #ddd;padding:15px;border-radius:10px;margin-bottom:15px;background:#f9f9f9;}</style>
     </head><body>
-    <h1>🌱 Mon Bilan Mobilité - GoDifferent</h1>
-    
+    <h1>🌱 Mon Bilan Mobilité</h1>
     <div class="card">
-        <h2>👤 Profil</h2>
+        <h3>👤 Profil</h3>
         <p><strong>Pseudo :</strong> ${myEmoji}</p>
         <p><strong>Adresse :</strong> ${myFullAddress}</p>
-        <p><strong>Mode actuel :</strong> ${myTransportMode}</p>
+        <p><strong>Mode :</strong> ${myTransportMode}</p>
     </div>
-
     <div class="card">
-        <h2>🌍 Impact & Réseau</h2>
-        <p><strong>Gain potentiel :</strong> <span style="color:#10b981;font-weight:bold;font-size:1.5em;">${$('co2Savings').textContent} kg CO2/an</span></p>
+        <h3>🌍 Impact</h3>
+        <p><strong>Gain potentiel :</strong> ${$('co2Savings').textContent} kg CO2/an</p>
         <p><strong>Voisins trouvés :</strong> ${participants.slice(0,5).length}</p>
     </div>
-
     <div class="card">
-        <h2>💡 Vos Propositions</h2>
-        <p><strong>Alternatives :</strong><br> ${alt}</p>
-        <p><strong>Contraintes :</strong><br> ${cons}</p>
-        <p><strong>Leviers :</strong><br> ${lev}</p>
-        <p><strong>Probabilité de changement :</strong> ${commitmentLevel}%</p>
+        <h3>🚀 Engagement</h3>
+        <p>Probabilité de changement : ${commitmentLevel}%</p>
     </div>
-
-    <p style="text-align:center;font-size:0.8em;color:#666;">Généré par l'Atelier Mobilité. Conservez ce document.</p>
-    
-    <button onclick="window.print()" class="btn">🖨️ Imprimer / Sauvegarder en PDF</button>
+    <button onclick="window.print()" style="padding:10px 20px;background:#4F46E5;color:white;border:none;border-radius:5px;cursor:pointer;">Imprimer / PDF</button>
     </body></html>`;
     win.document.write(content);
     win.document.close();
