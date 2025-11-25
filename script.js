@@ -11,6 +11,8 @@ const APP_CONFIG = typeof CONFIG !== 'undefined' ? CONFIG : {
 let myCoords=null, myUniqueId='', myEmoji='', myTransportMode='', myTransportMode2='', mode1Days=0, mode2Days=0, myDepartureTime='07:30', myFullAddress='';
 let participants=[], scanning=false, animationFrameId=null, gameTargets=[], scannedTargets=[], attemptsLeft=5, score=0, gameActive=false;
 let companyCoords=null, companyAddress='', rgpdAccepted=false, inviteCountdownInterval=null, scanCount=0;
+
+// MAINTENANT TOUT EST STOCKÉ SOUS FORME D'OBJET { "Nom": "Priorité" }
 let selectedAlternatives={}, selectedConstraints={}, selectedLevers={}, commitmentLevel=80;
 let googleScriptUrl = APP_CONFIG.GOOGLE_SCRIPT_URL;
 
@@ -20,7 +22,6 @@ const ALTERNATIVES = ["Covoiturage", "Autopartage", "Transports en commun", "Tra
 const CONSTRAINTS = ["Horaires décalés", "Enfants", "Matériel", "Distance >30km", "Pas de TC", "Pas de piste cyclable", "Météo", "Santé", "Flexibilité", "Coût", "Autre (précisez)"];
 const LEVERS = ["Prime mobilité", "Abonnement TC 75%", "Parking vélo", "Douches", "Recharge élec", "Covoiturage interne", "Vélos fonction", "Formation", "Autre (précisez)"];
 
-// REMPLACEMENT PAR TES CHALLENGES COMPLETS
 const miniChallenges = [
       { title: "🤝 Connecteurs", task: "Présentez-vous mutuellement à une 3ème personne que vous scannerez ensemble", icon: "🎭" },
       { title: "🔤 Chasseurs d'initiales", task: "Scannez 2 personnes dont les prénoms commencent par la même lettre", icon: "🎲" },
@@ -36,11 +37,17 @@ function generateEmojiPseudo() { return EMOJI_SET[Math.floor(Math.random()*EMOJI
 
 // TOASTS LISIBLES
 function showError(msg) {
-    const div = document.createElement('div');
-    div.className = 'toast-msg error';
-    div.innerHTML = `<span>❌</span> <span>${msg}</span>`;
-    document.body.appendChild(div);
-    setTimeout(() => div.remove(), 3000);
+    const errDiv = document.querySelector('.step.active .error-msg');
+    if (errDiv && errDiv.offsetParent !== null) {
+        errDiv.textContent = msg;
+        setTimeout(() => errDiv.textContent = '', 3000);
+    } else {
+        const div = document.createElement('div');
+        div.className = 'toast-msg error';
+        div.innerHTML = `<span>❌</span> <span>${msg}</span>`;
+        document.body.appendChild(div);
+        setTimeout(() => div.remove(), 3000);
+    }
 }
 
 function showSuccess(msg) {
@@ -224,7 +231,6 @@ $('saveLocation').onclick = async () => {
         $('afterLocationSection').style.display = 'block';
         $('myEmojiDisplay').textContent = myEmoji;
         
-        // Modification ici : Affiche les 2 premiers éléments (Rue + Ville) pour éviter la troncature
         const addrDisplay = $('detectedAddress');
         if(addrDisplay) addrDisplay.textContent = myFullAddress.split(',').slice(0, 2).join(',');
         
@@ -429,67 +435,62 @@ function resetGame() {
 
 // ================= FORMULAIRE AVEC HIERARCHIE =================
 function initStep6Form() {
-    const altList = $('alternativesList');
-    if(altList.children.length > 0) return;
+    // Fonction générique pour créer les champs
+    const createFields = (listId, items, type) => {
+        const list = $(listId);
+        if(list.children.length > 0) return; // Déjà init
 
-    ALTERNATIVES.forEach((alt, i) => {
-        const isOther = alt.toLowerCase().includes("autre");
-        let html = `
-        <div class="checkbox-item-wrapper">
-            <div class="checkbox-item">
-                <input type="checkbox" id="alt${i}" onchange="handleOptionChange(this, 'alt', '${alt}', ${i}, ${isOther})">
-                <label for="alt${i}" style="flex:1;">${alt}</label>
-                <select id="prioAlt${i}" class="prio-select" style="display:none; width:auto; padding:2px;" onchange="selectedAlternatives['${alt}'] = this.value">
-                    <option value="1">Prio 1</option>
-                    <option value="2">Prio 2</option>
-                    <option value="3">Prio 3</option>
-                </select>
-            </div>`;
-        if(isOther) html += `<input type="text" id="altInput${i}" class="other-input" placeholder="Précisez..." style="display:none;">`;
-        html += `</div>`;
-        altList.innerHTML += html;
-    });
-    
-    const constList = $('constraintsList');
-    CONSTRAINTS.forEach((item, i) => {
-        const isOther = item.toLowerCase().includes("autre");
-        let html = `<div class="checkbox-item-wrapper"><div class="checkbox-item">
-            <input type="checkbox" id="cons${i}" onchange="handleOptionChange(this, 'cons', '${item}', ${i}, ${isOther})">
-            <label for="cons${i}">${item}</label></div>`;
-        if(isOther) html += `<input type="text" id="consInput${i}" class="other-input" placeholder="Précisez..." style="display:none;">`;
-        html += `</div>`;
-        constList.innerHTML += html;
-    });
+        items.forEach((item, i) => {
+            const isOther = item.toLowerCase().includes("autre");
+            let html = `
+            <div class="checkbox-item-wrapper">
+                <div class="checkbox-item">
+                    <input type="checkbox" id="${type}${i}" onchange="handleOptionChange(this, '${type}', '${item}', ${i}, ${isOther})">
+                    <label for="${type}${i}" style="flex:1;">${item}</label>
+                    <select id="prio${type}${i}" class="prio-select" style="display:none; width:auto; padding:2px;" 
+                        onchange="updatePriority('${type}', '${item}', this.value)">
+                        <option value="1">Prio 1</option>
+                        <option value="2">Prio 2</option>
+                        <option value="3">Prio 3</option>
+                    </select>
+                </div>`;
+            if(isOther) html += `<input type="text" id="${type}Input${i}" class="other-input" placeholder="Précisez..." style="display:none;">`;
+            html += `</div>`;
+            list.innerHTML += html;
+        });
+    };
 
-    const levList = $('leversList');
-    LEVERS.forEach((item, i) => {
-        const isOther = item.toLowerCase().includes("autre");
-        let html = `<div class="checkbox-item-wrapper"><div class="checkbox-item">
-            <input type="checkbox" id="lev${i}" onchange="handleOptionChange(this, 'lev', '${item}', ${i}, ${isOther})">
-            <label for="lev${i}">${item}</label></div>`;
-        if(isOther) html += `<input type="text" id="levInput${i}" class="other-input" placeholder="Précisez..." style="display:none;">`;
-        html += `</div>`;
-        levList.innerHTML += html;
-    });
+    createFields('alternativesList', ALTERNATIVES, 'alt');
+    createFields('constraintsList', CONSTRAINTS, 'cons');
+    createFields('leversList', LEVERS, 'lev');
 }
 
 function handleOptionChange(checkbox, type, name, index, isOther) {
+    // Gestion affichage "Autre"
     if(isOther) {
         const input = document.getElementById(`${type}Input${index}`);
         if(input) input.style.display = checkbox.checked ? 'block' : 'none';
     }
-    if(type === 'alt') {
-        const prioSelect = document.getElementById(`prioAlt${index}`);
-        if(prioSelect) {
-            prioSelect.style.display = checkbox.checked ? 'block' : 'none';
-            if(checkbox.checked) selectedAlternatives[name] = "1"; 
-            else delete selectedAlternatives[name];
-        }
-    } else if (type === 'cons') {
-        if(checkbox.checked) selectedConstraints[name] = "1"; else delete selectedConstraints[name];
-    } else if (type === 'lev') {
-        if(checkbox.checked) selectedLevers[name] = "1"; else delete selectedLevers[name];
+    
+    // Gestion affichage "Priorité" (Pour TOUS)
+    const prioSelect = document.getElementById(`prio${type}${index}`);
+    if(prioSelect) {
+        prioSelect.style.display = checkbox.checked ? 'block' : 'none';
     }
+
+    // Mise à jour données
+    let targetObj = (type === 'alt') ? selectedAlternatives : (type === 'cons' ? selectedConstraints : selectedLevers);
+    
+    if(checkbox.checked) {
+        targetObj[name] = "1"; // Valeur par défaut
+    } else {
+        delete targetObj[name];
+    }
+}
+
+function updatePriority(type, name, value) {
+    let targetObj = (type === 'alt') ? selectedAlternatives : (type === 'cons' ? selectedConstraints : selectedLevers);
+    if(targetObj[name]) targetObj[name] = value;
 }
 
 function updateCommitmentValue() {
@@ -498,16 +499,33 @@ function updateCommitmentValue() {
 }
 
 function showCompanyScan() {
-    let altStr = Object.entries(selectedAlternatives).map(([k,v]) => {
-        if(k.toLowerCase().includes("autre")) {
-            const inputs = document.querySelectorAll('#alternativesList .other-input');
-            for(let inp of inputs) { if(inp.style.display !== 'none') return `Autre: ${inp.value} (Prio ${v})`; }
-        }
-        return `${k} (Prio ${v})`;
-    }).join(', ');
+    // Helper pour formater le texte final (Nom + Prio + Autre)
+    const formatData = (obj, listId, typePrefix) => {
+        return Object.entries(obj).map(([k, v]) => {
+            let displayName = k;
+            if(k.toLowerCase().includes("autre")) {
+                // Chercher l'input texte associé
+                // On doit retrouver l'index. Astuce: on cherche dans le DOM
+                const inputs = document.querySelectorAll(`#${listId} .other-input`);
+                for(let inp of inputs) {
+                    if(inp.style.display !== 'none' && inp.value) {
+                        displayName = `Autre: ${inp.value}`;
+                        break;
+                    }
+                }
+            }
+            return `${displayName} (Prio ${v})`;
+        }).join(', ');
+    };
 
-    let consStr = Object.keys(selectedConstraints).join(', ');
-    let levStr = Object.keys(selectedLevers).join(', ');
+    let altStr = formatData(selectedAlternatives, 'alternativesList', 'alt');
+    let consStr = formatData(selectedConstraints, 'constraintsList', 'cons');
+    let levStr = formatData(selectedLevers, 'leversList', 'lev');
+
+    // Sauvegarde pour le PDF
+    localStorage.setItem('finalAlternatives', altStr);
+    localStorage.setItem('finalConstraints', consStr);
+    localStorage.setItem('finalLevers', levStr);
 
     sendToGoogleSheets({
         type: 'propositions', participantId: myUniqueId, emoji: myEmoji,
@@ -635,28 +653,48 @@ function refreshAdminStats() {
 }
 
 function generatePDF() {
+    const alt = localStorage.getItem('finalAlternatives') || "Aucune";
+    const cons = localStorage.getItem('finalConstraints') || "Aucune";
+    const lev = localStorage.getItem('finalLevers') || "Aucun";
+
     const win = window.open('', '_blank');
     const content = `
     <html><head><title>Rapport ${myEmoji}</title>
-    <style>body{font-family:sans-serif;padding:20px;color:#333;} h1{color:#4F46E5;} .card{border:1px solid #ddd;padding:15px;border-radius:10px;margin-bottom:15px;background:#f9f9f9;}</style>
+    <style>
+        body{font-family:sans-serif;padding:20px;color:#333;max-width:800px;margin:0 auto;} 
+        h1{color:#4F46E5;text-align:center;border-bottom:2px solid #4F46E5;padding-bottom:10px;} 
+        h2{color:#4F46E5;margin-top:20px;font-size:1.2em;}
+        .card{border:1px solid #e2e8f0;padding:20px;border-radius:10px;margin-bottom:20px;background:#f8fafc;}
+        .tag{display:inline-block;background:#e0e7ff;color:#4338ca;padding:2px 8px;border-radius:12px;font-size:0.9em;margin:2px;}
+        .btn{display:block;width:100%;padding:15px;background:#4F46E5;color:white;text-align:center;text-decoration:none;border-radius:8px;margin-top:20px;font-weight:bold;}
+    </style>
     </head><body>
-    <h1>🌱 Mon Bilan Mobilité</h1>
+    <h1>🌱 Mon Bilan Mobilité - GoDifferent</h1>
+    
     <div class="card">
-        <h3>👤 Profil</h3>
+        <h2>👤 Profil</h2>
         <p><strong>Pseudo :</strong> ${myEmoji}</p>
         <p><strong>Adresse :</strong> ${myFullAddress}</p>
-        <p><strong>Mode :</strong> ${myTransportMode}</p>
+        <p><strong>Mode actuel :</strong> ${myTransportMode}</p>
     </div>
+
     <div class="card">
-        <h3>🌍 Impact</h3>
-        <p><strong>Gain potentiel :</strong> ${$('co2Savings').textContent} kg CO2/an</p>
+        <h2>🌍 Impact & Réseau</h2>
+        <p><strong>Gain potentiel :</strong> <span style="color:#10b981;font-weight:bold;font-size:1.5em;">${$('co2Savings').textContent} kg CO2/an</span></p>
         <p><strong>Voisins trouvés :</strong> ${participants.slice(0,5).length}</p>
     </div>
+
     <div class="card">
-        <h3>🚀 Engagement</h3>
-        <p>Probabilité de changement : ${commitmentLevel}%</p>
+        <h2>💡 Vos Propositions</h2>
+        <p><strong>Alternatives :</strong><br> ${alt}</p>
+        <p><strong>Contraintes :</strong><br> ${cons}</p>
+        <p><strong>Leviers :</strong><br> ${lev}</p>
+        <p><strong>Probabilité de changement :</strong> ${commitmentLevel}%</p>
     </div>
-    <button onclick="window.print()" style="padding:10px 20px;background:#4F46E5;color:white;border:none;border-radius:5px;cursor:pointer;">Imprimer / PDF</button>
+
+    <p style="text-align:center;font-size:0.8em;color:#666;">Généré par l'Atelier Mobilité. Conservez ce document.</p>
+    
+    <button onclick="window.print()" class="btn">🖨️ Imprimer / Sauvegarder en PDF</button>
     </body></html>`;
     win.document.write(content);
     win.document.close();
