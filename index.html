@@ -41,16 +41,12 @@
     <div id="step1" class="step active">
       <div class="card glass-effect">
         <h1>🚀 Bienvenue !</h1>
-        
-        <!-- Login -->
         <div id="loginSection">
             <p class="subtitle">Entrez le code de l'atelier.</p>
             <input type="text" id="accessCodeInput" placeholder="Code d'accès" />
             <button class="btn-primary" onclick="checkAccessCode()">Valider</button>
             <div class="error-msg"></div>
         </div>
-        
-        <!-- Formulaire Profil -->
         <div id="locationSection" style="display: none;">
           <h3>📍 Profil</h3>
           <div class="input-group"><label>Adresse</label><input id="userAddress" placeholder="Ex: 10 rue de la Liberté" /></div>
@@ -70,21 +66,13 @@
           </div>
           <div class="input-group"><label>Départ</label><input type="time" id="departureTime" value="07:30" /></div>
           <div style="text-align:center; margin:15px 0;"><label class="checkbox-item"><input type="checkbox" id="multimodalCheck" onchange="toggleMultimodal()"> J'alterne entre plusieurs modes</label></div>
-          
           <button class="btn-primary" id="saveLocation">Valider</button>
-          
-          <!-- Zone d'erreur ajoutée ici pour qu'elle soit visible -->
           <div class="error-msg" id="locationError"></div>
         </div>
-
-        <!-- Confirmation Profil -->
         <div id="afterLocationSection" style="display: none;">
           <div class="success-msg">✅ Enregistré !</div>
           <div class="emoji-display"><div id="myEmojiDisplay" style="font-size: 4rem;"></div></div>
-          
-          <!-- LIGNE RESTAURÉE : C'est elle qui manquait ! -->
           <div class="info-box"><strong>📍 Adresse :</strong> <span id="detectedAddress"></span></div>
-          
           <button class="btn-secondary" onclick="showInvitePage()">📨 Inviter</button>
           <button class="btn-primary" onclick="showStep(2)">Suivant ➡</button>
         </div>
@@ -128,12 +116,15 @@
     <div id="step4" class="step">
       <div class="card glass-effect">
         <h2>🗺️ Position</h2>
-        <p>Scannez pour trianguler.</p>
+        <div class="info-box">
+            <p>Des QR codes de repère sont disposés dans la salle pour vous aider.</p>
+            <p>Scannez-en un pour valider votre position.</p>
+        </div>
         <div class="qr-wrapper-small"><div id="qrcodeStep4"></div></div>
         <div class="camera-container" id="positioningCameraView" style="display:none;"><video id="positioningVideo" autoplay playsinline muted></video></div>
         <button class="btn-outline" id="stopPosCamBtn" style="display:none;" onclick="stopAllCameras()">🛑 Arrêter</button>
         <button class="btn-primary" id="positioningScanBtn" onclick="startScanLoop('positioning')">📱 Scanner</button>
-        <div class="navigation-buttons"><button class="btn-outline" onclick="showStep(3)">Retour</button><button class="btn-primary" onclick="showStep(5)">Suivant</button></div>
+        <div class="navigation-buttons"><button class="btn-outline" onclick="showStep(3)">Retour</button><button class="btn-primary" onclick="showStep(5)">✅ Je suis bien placé</button></div>
       </div>
     </div>
 
@@ -167,6 +158,8 @@
         <p>Scannez le QR Entreprise.</p>
         <div class="camera-container" id="companyCameraView" style="display:none;"><video id="companyVideo" autoplay playsinline muted></video></div>
         <button class="btn-primary" onclick="startScanLoop('company')">Scanner QR</button>
+        <!-- Bouton RETOUR pour modifier les choix -->
+        <div class="navigation-buttons"><button class="btn-outline" onclick="showStep(6)">⬅️ Modifier mes choix</button></div>
       </div>
     </div>
 
