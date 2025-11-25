@@ -4,12 +4,8 @@
   <meta charset="UTF-8">
   <title>Atelier Mobilité</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
-  <!-- Police -->
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
-  <!-- Lien vers le CSS -->
   <link rel="stylesheet" href="style.css">
-  
-  <!-- Bibliothèques externes -->
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -45,12 +41,16 @@
     <div id="step1" class="step active">
       <div class="card glass-effect">
         <h1>🚀 Bienvenue !</h1>
+        
+        <!-- Login -->
         <div id="loginSection">
             <p class="subtitle">Entrez le code de l'atelier.</p>
             <input type="text" id="accessCodeInput" placeholder="Code d'accès" />
             <button class="btn-primary" onclick="checkAccessCode()">Valider</button>
             <div class="error-msg"></div>
         </div>
+        
+        <!-- Formulaire Profil -->
         <div id="locationSection" style="display: none;">
           <h3>📍 Profil</h3>
           <div class="input-group"><label>Adresse</label><input id="userAddress" placeholder="Ex: 10 rue de la Liberté" /></div>
@@ -70,11 +70,21 @@
           </div>
           <div class="input-group"><label>Départ</label><input type="time" id="departureTime" value="07:30" /></div>
           <div style="text-align:center; margin:15px 0;"><label class="checkbox-item"><input type="checkbox" id="multimodalCheck" onchange="toggleMultimodal()"> J'alterne entre plusieurs modes</label></div>
+          
           <button class="btn-primary" id="saveLocation">Valider</button>
+          
+          <!-- Zone d'erreur ajoutée ici pour qu'elle soit visible -->
+          <div class="error-msg" id="locationError"></div>
         </div>
+
+        <!-- Confirmation Profil -->
         <div id="afterLocationSection" style="display: none;">
           <div class="success-msg">✅ Enregistré !</div>
           <div class="emoji-display"><div id="myEmojiDisplay" style="font-size: 4rem;"></div></div>
+          
+          <!-- LIGNE RESTAURÉE : C'est elle qui manquait ! -->
+          <div class="info-box"><strong>📍 Adresse :</strong> <span id="detectedAddress"></span></div>
+          
           <button class="btn-secondary" onclick="showInvitePage()">📨 Inviter</button>
           <button class="btn-primary" onclick="showStep(2)">Suivant ➡</button>
         </div>
@@ -239,7 +249,6 @@
     <canvas id="canvas" style="display:none;"></canvas>
   </div>
 
-  <!-- LIENS VERS LES SCRIPTS -->
   <script src="config.js"></script>
   <script src="script.js"></script>
 </body>
