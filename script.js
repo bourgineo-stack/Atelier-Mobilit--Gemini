@@ -33,11 +33,19 @@ function generateEmojiPseudo() { return EMOJI_SET[Math.floor(Math.random()*EMOJI
 
 // TOASTS LISIBLES
 function showError(msg) {
-    const div = document.createElement('div');
-    div.className = 'toast-msg error';
-    div.innerHTML = `<span>❌</span> <span>${msg}</span>`;
-    document.body.appendChild(div);
-    setTimeout(() => div.remove(), 3000);
+    // On cherche d'abord une zone d'erreur locale active
+    const errDiv = document.querySelector('.step.active .error-msg');
+    if (errDiv && errDiv.offsetParent !== null) { // Vérifie si visible
+        errDiv.textContent = msg;
+        setTimeout(() => errDiv.textContent = '', 3000);
+    } else {
+        // Sinon Toast flottant
+        const div = document.createElement('div');
+        div.className = 'toast-msg error';
+        div.innerHTML = `<span>❌</span> <span>${msg}</span>`;
+        document.body.appendChild(div);
+        setTimeout(() => div.remove(), 3000);
+    }
 }
 
 function showSuccess(msg) {
@@ -220,7 +228,10 @@ $('saveLocation').onclick = async () => {
         $('locationSection').style.display = 'none';
         $('afterLocationSection').style.display = 'block';
         $('myEmojiDisplay').textContent = myEmoji;
-        $('detectedAddress').textContent = myFullAddress.split(',')[0];
+        
+        // SÉCURITÉ ANTI-CRASH : Vérifier si l'élément existe avant d'écrire
+        const addrDisplay = $('detectedAddress');
+        if(addrDisplay) addrDisplay.textContent = myFullAddress.split(',')[0];
         
         const payload = {
             type: 'participant', id: myUniqueId, emoji: myEmoji, lat: myCoords.lat, lon: myCoords.lon, 
