@@ -4,8 +4,12 @@
   <meta charset="UTF-8">
   <title>Atelier Mobilité</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+  <!-- Police -->
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+  <!-- Lien vers le CSS -->
   <link rel="stylesheet" href="style.css">
+  
+  <!-- Bibliothèques externes -->
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -147,7 +151,12 @@
         <h3 style="margin-top:15px;">Leviers</h3><div id="leversList"></div>
         <h3 style="margin-top:15px;">Engagement</h3>
         <div class="range-container"><input type="range" id="commitmentRange" value="80" oninput="updateCommitmentValue()"><div class="range-value"><span id="commitmentValue">80</span>%</div></div>
-        <button class="btn-primary" onclick="showCompanyScan()">Générer Rapport</button>
+        
+        <!-- MODIFICATION ICI : Boutons groupés -->
+        <div class="navigation-buttons">
+            <button class="btn-outline" onclick="showStep(5)">⬅️ Retour</button>
+            <button class="btn-primary" onclick="showCompanyScan()">Générer Rapport ➡️</button>
+        </div>
       </div>
     </div>
 
@@ -158,18 +167,16 @@
         <p>Scannez le QR Entreprise.</p>
         <div class="camera-container" id="companyCameraView" style="display:none;"><video id="companyVideo" autoplay playsinline muted></video></div>
         <button class="btn-primary" onclick="startScanLoop('company')">Scanner QR</button>
-        <!-- Bouton RETOUR pour modifier les choix -->
         <div class="navigation-buttons"><button class="btn-outline" onclick="showStep(6)">⬅️ Modifier mes choix</button></div>
       </div>
     </div>
 
-   <!-- Rapport -->
+    <!-- Rapport -->
     <div id="reportPage" class="step">
       <div class="card glass-effect">
         <h2>🎉 Bilan</h2>
         <div class="co2-savings"><p>Gain potentiel</p><div class="co2-number" id="co2Savings">0</div>kg CO2/an</div>
         <button class="btn-primary" onclick="generatePDF()">📄 Page Imprimable</button>
-        <!-- BOUTON RETOUR AJOUTÉ -->
         <div class="navigation-buttons"><button class="btn-outline" onclick="showStep(6)">⬅️ Modifier mes choix</button></div>
       </div>
     </div>
