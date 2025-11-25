@@ -3,6 +3,7 @@
     --primary-dark: #4338ca;
     --accent: #EC4899; /* Rose */
     --success: #10b981;
+    --error: #ef4444;
     --bg-dark: #0f172a;
     --text-light: #f8fafc;
     --glass: rgba(255, 255, 255, 0.08);
@@ -98,7 +99,7 @@ input, select {
 }
 input:focus, select:focus { outline: none; border-color: var(--primary); }
 
-/* Boutons Standards */
+/* Boutons */
 button {
     width: 100%;
     padding: 14px;
@@ -131,22 +132,13 @@ button:active { transform: scale(0.98); }
     border-left: 3px solid var(--accent);
 }
 
-.qr-wrapper {
+.qr-wrapper, .qr-wrapper-small {
     background: white;
     padding: 15px;
     border-radius: 15px;
     display: flex;
     justify-content: center;
     margin: 20px auto;
-    max-width: 230px;
-}
-.qr-wrapper-small {
-    background: white;
-    padding: 10px;
-    border-radius: 10px;
-    display: flex;
-    justify-content: center;
-    margin: 10px auto;
     max-width: 230px;
 }
 
@@ -215,6 +207,16 @@ video { width: 100%; height: 100%; object-fit: cover; }
 .co2-number { font-size: 3rem; font-weight: 800; margin: 10px 0; color: #34d399; }
 
 /* Admin & Divers */
+.admin-floating-btn, .reset-floating-btn {
+    position: fixed; bottom: 20px; width: 50px; height: 50px;
+    border-radius: 50%; border: 1px solid var(--glass-border);
+    font-size: 1.5rem; cursor: pointer; z-index: 999;
+    display: flex; justify-content: center; align-items: center; padding: 0; margin: 0;
+}
+.admin-floating-btn { right: 20px; background: var(--bg-dark); color: white; }
+.reset-floating-btn { left: 20px; background: #dc2626; color: white; }
+.reset-floating-btn:hover { transform: scale(1.1); background: #ef4444; }
+
 .modal {
     display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     background: rgba(0, 0, 0, 0.8); z-index: 1000; align-items: center; justify-content: center; padding: 20px;
@@ -223,41 +225,29 @@ video { width: 100%; height: 100%; object-fit: cover; }
 .modal-content { background: #1e293b; padding: 20px; border-radius: 20px; width: 100%; max-width: 400px; }
 
 .error-msg { color: #ef4444; font-size: 0.9rem; margin-top: 5px; }
-.success-msg { color: #10b981; font-weight: bold; text-align: center; margin: 10px 0; }
 
-/* BOUTONS FLOTTANTS */
-.admin-floating-btn, .reset-floating-btn {
-    position: fixed; 
-    bottom: 20px; 
-    width: 50px; height: 50px;
-    border-radius: 50%; 
-    border: 1px solid var(--glass-border);
-    font-size: 1.5rem; 
-    cursor: pointer; 
-    z-index: 999;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 0; /* Important pour éviter les déformations */
-    margin: 0;
+/* TOASTS PROS & LISIBLES */
+.toast-msg {
+    position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+    background: white; /* Fond blanc opaque pour lisibilité max */
+    color: #1e293b; /* Texte foncé */
+    padding: 12px 20px;
+    border-radius: 50px; /* Forme pilule moderne */
+    z-index: 10000;
+    font-weight: 600;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+    display: flex; align-items: center; gap: 10px;
+    animation: slideDown 0.3s ease-out;
 }
+.toast-msg.success { border-left: 5px solid var(--success); }
+.toast-msg.error { border-left: 5px solid var(--error); }
 
-.admin-floating-btn {
-    right: 20px;
-    background: var(--bg-dark);
-    color: white;
-}
-
-.reset-floating-btn {
-    left: 20px;
-    background: #dc2626; /* Rouge */
-    color: white;
-}
-.reset-floating-btn:hover { transform: scale(1.1); background: #ef4444; }
+@keyframes slideDown { from { opacity:0; transform: translate(-50%, -20px); } to { opacity:1; transform: translate(-50%, 0); } }
 
 /* Centrage du QR Admin */
 #companyQRSection {
     display: flex;
     justify-content: center;
     align-items: center;
+    flex-direction: column;
 }
