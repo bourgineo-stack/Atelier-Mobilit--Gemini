@@ -14,7 +14,7 @@ let companyCoords=null, companyAddress='', rgpdAccepted=false, inviteCountdownIn
 let selectedAlternatives={}, selectedConstraints={}, selectedLevers={}, commitmentLevel=80;
 let googleScriptUrl = APP_CONFIG.GOOGLE_SCRIPT_URL;
 
-// Canvas global pour le scan (Optimisation performance)
+// Canvas global pour le scan
 let scanCanvas = null;
 let scanCtx = null;
 
@@ -37,7 +37,6 @@ function $(id) { return document.getElementById(id); }
 function generateUniqueId() { return Math.random().toString(36).substr(2, 15); }
 function generateEmojiPseudo() { return EMOJI_SET[Math.floor(Math.random()*EMOJI_SET.length)] + EMOJI_SET[Math.floor(Math.random()*EMOJI_SET.length)] + EMOJI_SET[Math.floor(Math.random()*EMOJI_SET.length)]; }
 
-// TOASTS LISIBLES
 function showError(msg) {
     const errDiv = document.querySelector('.step.active .error-msg');
     if (errDiv && errDiv.offsetParent !== null) {
@@ -67,7 +66,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
     
-    // Init Canvas une seule fois pour perf
     scanCanvas = document.getElementById('canvas');
     if(scanCanvas) {
         scanCtx = scanCanvas.getContext('2d', { willReadFrequently: true });
@@ -283,7 +281,6 @@ function genMyQRCode(elId) {
 
 function startScanLoop(type) {
     scanning = true;
-    
     const camViewId = type === 'game' ? 'gameCameraView' : (type === 'company' ? 'companyCameraView' : (type === 'positioning' ? 'positioningCameraView' : 'cameraView'));
     const videoId = type === 'game' ? 'gameVideo' : (type === 'company' ? 'companyVideo' : (type === 'positioning' ? 'positioningVideo' : 'video'));
     const btnId = type === 'game' ? 'gameScanBtn' : (type === 'company' ? null : (type === 'positioning' ? 'positioningScanBtn' : 'scanBtn'));
@@ -294,7 +291,6 @@ function startScanLoop(type) {
     if($(stopBtnId)) $(stopBtnId).style.display = 'block';
 
     const video = $(videoId);
-    
     navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
     .then(stream => {
         video.srcObject = stream;
@@ -307,23 +303,15 @@ function startScanLoop(type) {
 
 function tick(video, type) {
     if(!scanning) return;
-    
     if(video.readyState === video.HAVE_ENOUGH_DATA) {
-        // Utilisation du Canvas global pour éviter la fuite de mémoire
         if(!scanCanvas) {
             scanCanvas = document.getElementById('canvas');
             scanCtx = scanCanvas.getContext('2d', { willReadFrequently: true });
         }
-        
         scanCanvas.width = video.videoWidth;
         scanCanvas.height = video.videoHeight;
         scanCtx.drawImage(video, 0, 0);
-        
-        // Scan
-        const imageData = scanCtx.getImageData(0, 0, scanCanvas.width, scanCanvas.height);
-        const code = jsQR(imageData.data, imageData.width, imageData.height, {
-            inversionAttempts: "dontInvert",
-        });
+        const code = jsQR(scanCtx.getImageData(0,0,scanCanvas.width,scanCanvas.height).data, scanCanvas.width, scanCanvas.height);
         
         if(code) {
             try {
@@ -335,17 +323,8 @@ function tick(video, type) {
                     else if(type === 'positioning') success = handlePositioningScan(data);
                     else success = addParticipant(data);
                 }
-                
                 if(success) stopAllCameras();
-                else {
-                    // Feedback si QR valide mais refusé (ex: déjà scanné)
-                    // On ne stoppe pas, on continue de scanner
-                }
-                
-            } catch(e) {
-                // Ce n'est pas un de nos QR codes (format JSON invalide)
-                console.log("QR ignoré");
-            }
+            } catch(e) {}
         }
     }
     if(scanning) requestAnimationFrame(() => tick(video, type));
@@ -464,12 +443,11 @@ function resetGame() {
     $('gameResult').innerHTML = '';
 }
 
-// ================= FORMULAIRE AVEC HIERARCHIE =================
+// ================= FORMULAIRE AVEC HIERARCHIE CORRIGÉE =================
 function initStep6Form() {
-    // Fonction générique pour créer les champs
     const createFields = (listId, items, type) => {
         const list = $(listId);
-        if(list.children.length > 0) return; // Déjà init
+        if(list.children.length > 0) return;
 
         items.forEach((item, i) => {
             const isOther = item.toLowerCase().includes("autre");
@@ -478,7 +456,7 @@ function initStep6Form() {
                 <div class="checkbox-item">
                     <input type="checkbox" id="${type}${i}" onchange="handleOptionChange(this, '${type}', '${item}', ${i}, ${isOther})">
                     <label for="${type}${i}" style="flex:1;">${item}</label>
-                    <select id="prio${type}${i}" class="prio-select" style="display:none; width:auto; padding:2px;" 
+                    <select id="prio${type.charAt(0).toUpperCase() + type.slice(1)}${i}" class="prio-select" style="display:none; width:auto; padding:2px;" 
                         onchange="updatePriority('${type}', '${item}', this.value)">
                         <option value="1">Prio 1</option>
                         <option value="2">Prio 2</option>
@@ -497,23 +475,23 @@ function initStep6Form() {
 }
 
 function handleOptionChange(checkbox, type, name, index, isOther) {
-    // Gestion affichage "Autre"
     if(isOther) {
         const input = document.getElementById(`${type}Input${index}`);
         if(input) input.style.display = checkbox.checked ? 'block' : 'none';
     }
     
-    // Gestion affichage "Priorité" (Pour TOUS)
-    const prioSelect = document.getElementById(`prio${type}${index}`);
+    // CORRECTION: Nommage dynamique de l'ID (ex: prioAlt0, prioCons0, prioLev0)
+    const capType = type.charAt(0).toUpperCase() + type.slice(1);
+    const prioSelect = document.getElementById(`prio${capType}${index}`);
+    
     if(prioSelect) {
         prioSelect.style.display = checkbox.checked ? 'block' : 'none';
     }
 
-    // Mise à jour données
     let targetObj = (type === 'alt') ? selectedAlternatives : (type === 'cons' ? selectedConstraints : selectedLevers);
     
     if(checkbox.checked) {
-        targetObj[name] = "1"; // Valeur par défaut
+        targetObj[name] = "1"; 
     } else {
         delete targetObj[name];
     }
@@ -530,13 +508,10 @@ function updateCommitmentValue() {
 }
 
 function showCompanyScan() {
-    // Helper pour formater le texte final (Nom + Prio + Autre)
     const formatData = (obj, listId, typePrefix) => {
         return Object.entries(obj).map(([k, v]) => {
             let displayName = k;
             if(k.toLowerCase().includes("autre")) {
-                // Chercher l'input texte associé
-                // On doit retrouver l'index. Astuce: on cherche dans le DOM
                 const inputs = document.querySelectorAll(`#${listId} .other-input`);
                 for(let inp of inputs) {
                     if(inp.style.display !== 'none' && inp.value) {
@@ -553,7 +528,6 @@ function showCompanyScan() {
     let consStr = formatData(selectedConstraints, 'constraintsList', 'cons');
     let levStr = formatData(selectedLevers, 'leversList', 'lev');
 
-    // Sauvegarde pour le PDF
     localStorage.setItem('finalAlternatives', altStr);
     localStorage.setItem('finalConstraints', consStr);
     localStorage.setItem('finalLevers', levStr);
@@ -683,29 +657,59 @@ function refreshAdminStats() {
     }
 }
 
+// GÉNÉRATION PDF CORRIGÉE ET COMPLÈTE
 function generatePDF() {
+    const alt = localStorage.getItem('finalAlternatives') || "Aucune";
+    const cons = localStorage.getItem('finalConstraints') || "Aucune";
+    const lev = localStorage.getItem('finalLevers') || "Aucun";
+
     const win = window.open('', '_blank');
     const content = `
     <html><head><title>Rapport ${myEmoji}</title>
-    <style>body{font-family:sans-serif;padding:20px;color:#333;} h1{color:#4F46E5;} .card{border:1px solid #ddd;padding:15px;border-radius:10px;margin-bottom:15px;background:#f9f9f9;}</style>
+    <style>
+        body{font-family:sans-serif;padding:20px;color:#333;max-width:800px;margin:0 auto;} 
+        h1{color:#4F46E5;text-align:center;border-bottom:2px solid #4F46E5;padding-bottom:10px;} 
+        h2{color:#4F46E5;margin-top:20px;font-size:1.2em;border-bottom:1px solid #eee;padding-bottom:5px;}
+        .card{border:1px solid #e2e8f0;padding:20px;border-radius:10px;margin-bottom:20px;background:#f8fafc;}
+        .btn{display:block;width:100%;padding:15px;background:#4F46E5;color:white;text-align:center;text-decoration:none;border-radius:8px;margin-top:20px;font-weight:bold;border:none;cursor:pointer;}
+        .btn-close{background:#ef4444;margin-top:10px;}
+        ul{margin:0;padding-left:20px;}
+        li{margin-bottom:5px;}
+    </style>
     </head><body>
-    <h1>🌱 Mon Bilan Mobilité</h1>
+    <h1>🌱 Mon Bilan Mobilité - GoDifferent</h1>
+    
     <div class="card">
-        <h3>👤 Profil</h3>
+        <h2>👤 Profil</h2>
         <p><strong>Pseudo :</strong> ${myEmoji}</p>
         <p><strong>Adresse :</strong> ${myFullAddress}</p>
-        <p><strong>Mode :</strong> ${myTransportMode}</p>
+        <p><strong>Mode actuel :</strong> ${myTransportMode}</p>
     </div>
+
     <div class="card">
-        <h3>🌍 Impact</h3>
-        <p><strong>Gain potentiel :</strong> ${$('co2Savings').textContent} kg CO2/an</p>
+        <h2>🌍 Impact & Réseau</h2>
+        <p><strong>Gain potentiel :</strong> <span style="color:#10b981;font-weight:bold;font-size:1.5em;">${$('co2Savings').textContent} kg CO2/an</span></p>
         <p><strong>Voisins trouvés :</strong> ${participants.slice(0,5).length}</p>
     </div>
+
     <div class="card">
-        <h3>🚀 Engagement</h3>
-        <p>Probabilité de changement : ${commitmentLevel}%</p>
+        <h2>💡 Vos Propositions (Priorisées)</h2>
+        <p><strong>Alternatives :</strong></p>
+        <ul>${alt.split(', ').map(i => `<li>${i}</li>`).join('')}</ul>
+        
+        <p><strong>Contraintes :</strong></p>
+        <ul>${cons.split(', ').map(i => `<li>${i}</li>`).join('')}</ul>
+        
+        <p><strong>Leviers :</strong></p>
+        <ul>${lev.split(', ').map(i => `<li>${i}</li>`).join('')}</ul>
+        
+        <p style="margin-top:15px;"><strong>Engagement personnel :</strong> ${commitmentLevel}%</p>
     </div>
-    <button onclick="window.print()" style="padding:10px 20px;background:#4F46E5;color:white;border:none;border-radius:5px;cursor:pointer;">Imprimer / PDF</button>
+
+    <p style="text-align:center;font-size:0.8em;color:#666;">Généré par l'Atelier Mobilité. Conservez ce document.</p>
+    
+    <button onclick="window.print()" class="btn">🖨️ Imprimer / Sauvegarder en PDF</button>
+    <button onclick="window.close()" class="btn btn-close">❌ Fermer la fenêtre</button>
     </body></html>`;
     win.document.write(content);
     win.document.close();
