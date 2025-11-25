@@ -223,7 +223,10 @@ $('saveLocation').onclick = async () => {
         $('locationSection').style.display = 'none';
         $('afterLocationSection').style.display = 'block';
         $('myEmojiDisplay').textContent = myEmoji;
-        $('detectedAddress').textContent = myFullAddress.split(',')[0];
+        
+        // Modification ici : Affiche les 2 premiers éléments (Rue + Ville) pour éviter la troncature
+        const addrDisplay = $('detectedAddress');
+        if(addrDisplay) addrDisplay.textContent = myFullAddress.split(',').slice(0, 2).join(',');
         
         const payload = {
             type: 'participant', id: myUniqueId, emoji: myEmoji, lat: myCoords.lat, lon: myCoords.lon, 
@@ -648,6 +651,10 @@ function generatePDF() {
         <h3>🌍 Impact</h3>
         <p><strong>Gain potentiel :</strong> ${$('co2Savings').textContent} kg CO2/an</p>
         <p><strong>Voisins trouvés :</strong> ${participants.slice(0,5).length}</p>
+    </div>
+    <div class="card">
+        <h3>🚀 Engagement</h3>
+        <p>Probabilité de changement : ${commitmentLevel}%</p>
     </div>
     <button onclick="window.print()" style="padding:10px 20px;background:#4F46E5;color:white;border:none;border-radius:5px;cursor:pointer;">Imprimer / PDF</button>
     </body></html>`;
