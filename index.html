@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Atelier Mobilité</title>
+  <title>Atelier Mobilité - GoDifferent</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
@@ -32,9 +32,9 @@
     <div id="rgpdNotice" class="card glass-effect" style="border-left: 4px solid #10b981;">
       <p style="font-size: 0.9em; margin-bottom: 15px;">
         ℹ️ Vos données sont stockées temporairement pour l'atelier.
-        <a href="#" onclick="showRGPDDetails(); return false;" style="color: #FFD700; text-decoration: underline; cursor: pointer; font-weight:bold;">En savoir plus</a>
+        <a href="#" onclick="showRGPDDetails(); return false;" style="color: #FFD700; text-decoration: underline;">En savoir plus</a>
       </p>
-      <button class="btn-primary" onclick="acceptRGPD()">✅ J'accepte et je continue</button>
+      <button class="btn-primary" onclick="acceptRGPD()">✅ J'accepte</button>
     </div>
 
     <!-- Étape 1 : Config -->
@@ -45,36 +45,34 @@
             <p class="subtitle">Entrez le code de l'atelier.</p>
             <input type="text" id="accessCodeInput" placeholder="Code d'accès" />
             <button class="btn-primary" onclick="checkAccessCode()">Valider</button>
-            <div class="error-msg"></div>
         </div>
         <div id="locationSection" style="display: none;">
-          <h3>📍 Profil</h3>
-          <div class="input-group"><label>Adresse</label><input id="userAddress" placeholder="Ex: 10 rue de la Liberté" /></div>
-          <div class="input-group"><label>Mode</label>
+          <h3>📍 Votre profil</h3>
+          <div class="input-group"><label>Adresse de départ</label><input id="userAddress" placeholder="Ex: 10 rue de la Liberté, Strasbourg" /></div>
+          <div class="input-group"><label>Mode de transport principal</label>
             <select id="transportMode">
                 <option value="">-- Choisir --</option>
                 <option value="car-thermal">🚗 Voiture thermique</option>
-                <option value="car-electric">⚡ Voiture élec</option>
+                <option value="car-electric">⚡ Voiture électrique</option>
                 <option value="carpool">🚙 Covoiturage</option>
-                <option value="train">🚆 Train/RER</option>
+                <option value="train">🚆 Train/TER</option>
                 <option value="bus">🚌 Bus/Tram</option>
                 <option value="bike">🚲 Vélo</option>
-                <option value="ebike">🚴 Vélo élec</option>
+                <option value="ebike">🚴 Vélo électrique</option>
                 <option value="walk">🚶 Marche</option>
                 <option value="remote">💻 Télétravail</option>
             </select>
           </div>
-          <div class="input-group"><label>Départ</label><input type="time" id="departureTime" value="07:30" /></div>
-          <div style="text-align:center; margin:15px 0;"><label class="checkbox-item"><input type="checkbox" id="multimodalCheck" onchange="toggleMultimodal()"> J'alterne entre plusieurs modes</label></div>
-          <button class="btn-primary" id="saveLocation">Valider</button>
-          <div class="error-msg" id="locationError"></div>
+          <div class="input-group"><label>Heure de départ habituelle</label><input type="time" id="departureTime" value="07:30" /></div>
+          <div style="text-align:center; margin:15px 0;"><label class="checkbox-item"><input type="checkbox" id="multimodalCheck" onchange="toggleMultimodal()"> J'alterne plusieurs modes</label></div>
+          <button class="btn-primary" id="saveLocation">Valider ma localisation</button>
         </div>
         <div id="afterLocationSection" style="display: none;">
-          <div class="success-msg">✅ Enregistré !</div>
+          <div class="success-msg">✅ Profil enregistré !</div>
           <div class="emoji-display"><div id="myEmojiDisplay" style="font-size: 4rem;"></div></div>
-          <div class="info-box"><strong>📍 Adresse :</strong> <span id="detectedAddress"></span></div>
+          <div class="info-box"><strong>📍</strong> <span id="detectedAddress"></span></div>
           <button class="btn-secondary" onclick="showInvitePage()">📨 Inviter un collègue</button>
-          <button class="btn-primary" onclick="showStep(2)">Lancer le jeu 🎮</button>
+          <button class="btn-primary" onclick="showStep(2)">Commencer 🎮</button>
         </div>
       </div>
     </div>
@@ -83,64 +81,51 @@
     <div id="step2" class="step">
       <div class="card glass-effect">
         <h2>🤝 Rencontres</h2>
+        <p class="subtitle">Scannez un maximum de collègues !</p>
         <div class="qr-wrapper"><div id="qrcode"></div></div>
         <div class="camera-container" id="cameraView"><video id="video" autoplay playsinline muted></video><div class="scan-overlay"></div></div>
         <button class="btn-outline" id="stopCamBtn" style="display:none;" onclick="stopAllCameras()">🛑 Arrêter</button>
-        <button class="btn-primary" id="scanBtn" onclick="startScanLoop('normal')">📱 Scanner</button>
+        <button class="btn-primary" id="scanBtn" onclick="startScanLoop('normal')">📱 Scanner un collègue</button>
         
         <div id="challengeSection" style="display:none; margin-top:15px;">
-            <div class="feedback-card"><h3 id="challengeTitle"></h3><p id="challengeTask"></p><button class="btn-secondary" id="continueChallengeBtn">OK</button></div>
+            <div class="feedback-card"><h3 id="challengeTitle"></h3><p id="challengeTask"></p><button class="btn-secondary" id="continueChallengeBtn">OK, continuer</button></div>
         </div>
         
         <div class="progress-container"><div class="progress-bar"><div class="progress-fill" id="step2Progress" style="width:0%"></div></div><p style="text-align:center;">Scans : <span id="scanCount">0</span></p></div>
-        <div class="navigation-buttons"><button class="btn-outline" onclick="showStep(1)">Retour</button><button class="btn-primary" id="goToStep3" disabled onclick="showStep(3)">Suivant</button></div>
+        <div class="navigation-buttons"><button class="btn-outline" onclick="showStep(1)">Retour</button><button class="btn-primary" id="goToStep3" disabled onclick="showStep(3)">Suivant →</button></div>
       </div>
     </div>
 
     <!-- Étape 3 : Voisins -->
     <div id="step3" class="step">
       <div class="card glass-effect">
-        <h2>🎯 Voisins</h2>
+        <h2>🎯 Trouvez vos voisins</h2>
+        <p class="subtitle">Retrouvez 3 de vos 5 plus proches voisins</p>
         <div class="qr-wrapper-small"><div id="qrcodeStep3"></div></div>
-        <div class="game-header"><div class="score-box"><span class="score-val" id="scoreBadge">0/3</span></div><div class="score-box"><span class="score-val" id="attemptsLeft">5</span></div></div>
+        <div class="game-header"><div class="score-box"><span class="score-val" id="scoreBadge">0/3</span><span class="score-label">Trouvés</span></div><div class="score-box"><span class="score-val" id="attemptsLeft">5</span><span class="score-label">Essais</span></div></div>
         <div id="targetList"></div>
-        <div class="camera-container" id="gameCameraView" style="display:none;"><video id="gameVideo" autoplay playsinline muted></video></div>
+        <div class="camera-container" id="gameCameraView"><video id="gameVideo" autoplay playsinline muted></video></div>
         <button class="btn-outline" id="stopGameCamBtn" style="display:none;" onclick="stopAllCameras()">🛑 Arrêter</button>
-        <button class="btn-primary" id="gameScanBtn" onclick="startScanLoop('game')">📱 Scanner Voisin</button>
+        <button class="btn-primary" id="gameScanBtn" onclick="startScanLoop('game')">📱 Scanner</button>
         <div id="gameResult"></div>
-        <div class="navigation-buttons"><button class="btn-outline" onclick="showStep(2)">Retour</button><button class="btn-primary" onclick="showStep(4)">Suivant</button></div>
+        <div class="navigation-buttons"><button class="btn-outline" onclick="showStep(2)">Retour</button><button class="btn-primary" onclick="showStep(4)">Suivant →</button></div>
       </div>
     </div>
 
     <!-- Étape 4 : Positionnement -->
     <div id="step4" class="step">
       <div class="card glass-effect">
-        <h2>🗺️ Position</h2>
-        <div class="info-box" style="text-align:left;">
-            <p><strong>Consigne :</strong> Scannez les QR codes "Repères" (murs/piliers) <strong>ET</strong> les QR codes mobiles (autres participants).</p>
-            <p style="margin-top:5px;">Le but est de quadriller la zone ensemble.</p>
+        <h2>🗺️ Positionnement</h2>
+        <div class="info-box">
+            <p><strong>Consigne :</strong> Scannez les repères muraux et vos voisins pour vous positionner dans l'espace.</p>
         </div>
-        
-        <div class="map-schematic">
-            <div class="map-point fixed p-fix1">🔳</div>
-            <div class="map-point fixed p-fix2">🔳</div>
-            <div class="map-point fixed p-fix3">🔳</div>
-            <div class="map-point mobile p-mob1">👤</div>
-            <div class="map-point mobile p-mob2">👤</div>
-            <div class="map-point mobile p-mob3">👤</div>
-            <div class="map-point mobile p-mob4">👤</div>
-            <div class="map-radar"></div>
-        </div>
-
         <div class="qr-wrapper-small"><div id="qrcodeStep4"></div></div>
-        <div class="camera-container" id="positioningCameraView" style="display:none;"><video id="positioningVideo" autoplay playsinline muted></video></div>
+        <div class="camera-container" id="positioningCameraView"><video id="positioningVideo" autoplay playsinline muted></video></div>
         <button class="btn-outline" id="stopPosCamBtn" style="display:none;" onclick="stopAllCameras()">🛑 Arrêter</button>
-        <!-- Texte corrigé ici -->
-        <button class="btn-primary" id="positioningScanBtn" onclick="startScanLoop('positioning')">📱 Scanner QR code repère ou participant</button>
-        
+        <button class="btn-primary" id="positioningScanBtn" onclick="startScanLoop('positioning')">📱 Scanner</button>
         <div class="navigation-buttons">
             <button class="btn-outline" onclick="showStep(3)">Retour</button>
-            <button class="btn-primary" onclick="showStep(5)">✅ Je suis bien placé</button>
+            <button class="btn-primary" onclick="showStep(5)">✅ Je suis placé</button>
         </div>
       </div>
     </div>
@@ -148,93 +133,107 @@
     <!-- Étape 5 : Pelotes -->
     <div id="step5" class="step">
       <div class="card glass-effect">
-        <h2>🧶 Toile d'Araignée</h2>
+        <h2>🧶 Visualisation des flux</h2>
         <div class="info-box" style="background: rgba(255,255,255,0.1); border-left: 4px solid #F59E0B;">
-          <h3>🕸️ Consigne :</h3>
-          <p>Avec l'aide de vos voisins, tentez de dessiner votre parcours le plus fidèlement possible.</p>
-          <p><strong>En route pour une belle toile d'araignée géante !</strong></p>
-          <hr style="border:0; border-top:1px solid rgba(255,255,255,0.2); margin:10px 0;">
-          <ul style="margin-left:20px;"><li>🟡 Voiture</li><li>🔵 Vélo/Marche</li><li>🌸 TC</li></ul>
+          <p>Avec vos voisins, dessinez votre trajet avec les pelotes de laine.</p>
+          <ul style="margin-left:20px; margin-top:10px;"><li>🟡 Voiture</li><li>🔵 Vélo/Marche</li><li>🌸 TC</li></ul>
         </div>
-        
-        <div class="stats-grid"><div class="stat-card"><div class="stat-number" id="totalParticipants">0</div>Joueurs</div><div class="stat-card"><div class="stat-number" id="avgDistance">0</div>Km Moy.</div></div>
-        
+        <div class="stats-grid"><div class="stat-card"><div class="stat-number" id="totalParticipants">0</div><span>Participants</span></div><div class="stat-card"><div class="stat-number" id="avgDistance">0</div><span>Km moyenne</span></div></div>
         <div class="navigation-buttons">
             <button class="btn-outline" onclick="showStep(4)">Retour</button>
-            <button class="btn-primary" onclick="showStep('stepCoConstruction')">Phase Discussion ➡️</button>
+            <button class="btn-primary" onclick="showStep('stepCoConstruction')">Discussion 💬</button>
         </div>
       </div>
     </div>
 
-    <!-- CO-CONSTRUCTION -->
+    <!-- ============ NOUVELLE PHASE CO-CONSTRUCTION ============ -->
     <div id="stepCoConstruction" class="step">
         <div class="card glass-effect">
-            <h2>💡 Co-Construction</h2>
-
+            
+            <!-- Phase 1 : Formation du groupe -->
             <div id="groupFormationSection">
+                <h2>👥 Formez votre groupe</h2>
                 <div class="info-box" style="background: #e0f2fe; color: #0c4a6e; border-left: 4px solid #0ea5e9;">
-                    <h3>👥 Formez votre équipe !</h3>
                     <p>Mettez-vous en cercle avec vos voisins (3 à 5 personnes).</p>
                     <p style="margin-top:10px;"><strong>Qui prend le téléphone ?</strong></p>
                     <div id="leaderChallenge" style="font-weight:bold; font-size:1.1em; text-align:center; padding:10px; border:2px dashed #0284c7; margin-top:5px; border-radius:8px;">
-                        🎲 Tirage au sort...
+                        🎲 Cliquez pour désigner
                     </div>
                 </div>
 
                 <div id="groupScanInterface" style="display:none; margin-top:15px;">
-                    <p>Le chef scanne les membres du groupe :</p>
+                    <p>Le chef scanne les membres :</p>
                     <div class="camera-container" id="groupCameraView" style="height:200px;"><video id="groupVideo" autoplay playsinline muted></video></div>
                     <button class="btn-primary" onclick="startScanLoop('group')">➕ Scanner un membre</button>
-                    <div id="groupMembersList" style="margin:10px 0; text-align:left;"></div>
+                    <div id="groupMembersList" style="margin:10px 0;"></div>
                     <button class="btn-secondary" id="validateGroupBtn" onclick="validateGroup()" disabled>✅ Groupe complet</button>
                 </div>
                 
-                <button class="btn-primary" id="startGroupBtn" onclick="initGroupPhase()">🎲 Désigner le chef et scanner</button>
+                <button class="btn-primary" id="startGroupBtn" onclick="initGroupPhase()">🎲 Désigner le chef</button>
             </div>
 
-            <div id="groupDiscussionSection" style="display:none;">
-                <h3 style="text-align:center; margin-bottom:15px;">Quelle est votre réalité ?</h3>
-                <div class="coach-selector">
-                    <button class="btn-outline coach-btn" onclick="startDiscussion('close')">🏙️ Proche (< 5km)</button>
-                    <button class="btn-outline coach-btn" onclick="startDiscussion('far')">🛣️ Éloigné (> 5km)</button>
+            <!-- Phase 2 : Nouvelle interface Co-construction -->
+            <div id="newCoConstructionSection" style="display:none;">
+                
+                <!-- Phase 2.1 : Choix du rôle -->
+                <div id="coConstPhase1">
+                    <h2>🎭 Qui êtes-vous ?</h2>
+                    <p style="text-align:center; opacity:0.8; margin-bottom:15px;">Chaque membre choisit son profil :</p>
+                    <div id="roleSelector" class="roles-grid"></div>
+                    <div id="selectedRoleMission"></div>
+                    <button class="btn-primary" id="goToPhase2Btn" onclick="goToPhase2()" disabled style="margin-top:20px;">Continuer →</button>
                 </div>
-
-                <div id="dynamicQuestionCard" style="display:none; margin-top:20px; padding:20px; background:white; color:#333; border-radius:15px; box-shadow:0 10px 25px rgba(0,0,0,0.2); text-align:center;">
-                    <div style="font-size:2em; margin-bottom:10px;">💬</div>
-                    <h3 id="questionText" style="color:var(--primary); margin-bottom:15px;">Question</h3>
-                    <p id="questionSubtext" style="font-size:0.9em; color:#666;"></p>
-                    <button class="btn-primary" onclick="nextQuestion()">Question Suivante ➡️</button>
+                
+                <!-- Phase 2.2 : Choix des thématiques -->
+                <div id="coConstPhase2" style="display:none;">
+                    <h2>📋 Choisissez vos sujets</h2>
+                    <div id="themeSelector"></div>
+                    <button class="btn-primary" id="goToPhase3Btn" onclick="goToPhase3()" disabled style="margin-top:20px;">Lancer la discussion →</button>
+                    <button class="btn-outline" onclick="backToPhase1()" style="margin-top:10px;">← Retour</button>
                 </div>
-
-                <div style="margin-top:30px;">
-                    <label>📝 Une idée clé à retenir ?</label>
-                    <textarea id="groupNote" rows="3" placeholder="Notez ici la meilleure idée du groupe..." style="width:100%; padding:10px; border-radius:10px; background:rgba(0,0,0,0.3); color:white; border:1px solid rgba(255,255,255,0.2); font-family:inherit;"></textarea>
+                
+                <!-- Phase 2.3 : Discussion guidée -->
+                <div id="coConstPhase3" style="display:none;">
+                    <h2>💬 Discussion</h2>
+                    <p style="text-align:center; opacity:0.8; margin-bottom:15px;">Cliquez sur une question pour la poser au groupe</p>
+                    <div id="discussionCardsContainer"></div>
+                    <div style="margin-top:20px;">
+                        <label>📝 Note du groupe :</label>
+                        <textarea id="groupNote" rows="3" placeholder="Idées clés, contacts échangés..."></textarea>
+                    </div>
+                    <button class="btn-primary" onclick="goToPhase4()" style="margin-top:15px;">Terminer la discussion →</button>
+                    <button class="btn-outline" onclick="backToPhase2()" style="margin-top:10px;">← Retour</button>
                 </div>
-
-                <div class="navigation-buttons" style="margin-top:20px;">
-                    <button class="btn-primary" onclick="showStep(6)">Mes Propositions ➡️</button>
+                
+                <!-- Phase 2.4 : Engagement soft -->
+                <div id="coConstPhase4" style="display:none;">
+                    <h2>🌱 Et maintenant ?</h2>
+                    <p style="text-align:center; opacity:0.8; margin-bottom:15px;">Pas d'obligation, juste des envies...</p>
+                    <div id="engagementContainer"></div>
+                    <button class="btn-primary" onclick="finishCoConstruction()" style="margin-top:20px;">Terminer ✨</button>
+                    <button class="btn-outline" onclick="backToPhase3()" style="margin-top:10px;">← Retour</button>
                 </div>
+                
             </div>
             
             <div class="navigation-buttons" style="margin-top:20px;">
-                <button class="btn-outline" onclick="showStep(5)">Retour Arrière</button>
+                <button class="btn-outline" onclick="showStep(5)">← Retour étape 5</button>
             </div>
         </div>
     </div>
 
-    <!-- Étape 6 : Propositions -->
+    <!-- Étape 6 : Propositions individuelles -->
     <div id="step6" class="step">
       <div class="card glass-effect">
-        <h2>📝 Mes Choix</h2>
-        <h3>Alternatives</h3><div id="alternativesList"></div>
-        <h3 style="margin-top:15px;">Contraintes</h3><div id="constraintsList"></div>
-        <h3 style="margin-top:15px;">Leviers</h3><div id="leversList"></div>
-        <h3 style="margin-top:15px;">Engagement</h3>
-        <div class="range-container"><input type="range" id="commitmentRange" value="80" oninput="updateCommitmentValue()"><div class="range-value"><span id="commitmentValue">80</span>%</div></div>
-        
+        <h2>📝 Mes propositions</h2>
+        <h3>Alternatives envisagées</h3><div id="alternativesList"></div>
+        <h3 style="margin-top:15px;">Mes contraintes</h3><div id="constraintsList"></div>
+        <h3 style="margin-top:15px;">Leviers attendus</h3><div id="leversList"></div>
+        <h3 style="margin-top:15px;">Mon engagement</h3>
+        <div class="range-container"><input type="range" id="commitmentRange" min="0" max="100" value="80" oninput="updateCommitmentValue()"><div class="range-value"><span id="commitmentValue">80</span>%</div></div>
         <div class="navigation-buttons">
-            <button class="btn-outline" onclick="showStep('stepCoConstruction')">⬅️ Retour Discussion</button>
-            <button class="btn-primary" onclick="showCompanyScan()">Générer Rapport ➡️</button>
+            <button class="btn-outline" onclick="showStep('stepCoConstruction')">← Retour</button>
+            <button class="btn-primary" onclick="showCompanyScan()">Finaliser →</button>
         </div>
       </div>
     </div>
@@ -242,39 +241,37 @@
     <!-- Scan Entreprise -->
     <div id="companyScanPage" class="step">
       <div class="card glass-effect">
-        <h2>🏢 Final</h2>
-        <p>Scannez le QR Entreprise.</p>
-        <div class="camera-container" id="companyCameraView" style="display:none;"><video id="companyVideo" autoplay playsinline muted></video></div>
-        <button class="btn-primary" onclick="startScanLoop('company')">Scanner QR</button>
-        <div class="navigation-buttons"><button class="btn-outline" onclick="showStep(6)">⬅️ Modifier mes choix</button></div>
+        <h2>🏢 Scan final</h2>
+        <p>Scannez le QR code de l'entreprise</p>
+        <div class="camera-container" id="companyCameraView"><video id="companyVideo" autoplay playsinline muted></video></div>
+        <button class="btn-outline" id="stopCompCamBtn" style="display:none;" onclick="stopAllCameras()">🛑 Arrêter</button>
+        <button class="btn-primary" onclick="startScanLoop('company')">📱 Scanner</button>
+        <button class="btn-outline" onclick="showStep(6)" style="margin-top:15px;">← Modifier mes choix</button>
       </div>
     </div>
 
     <!-- Rapport -->
     <div id="reportPage" class="step">
       <div class="card glass-effect">
-        <h2>🎉 Bilan</h2>
-        <div class="co2-savings"><p>Gain potentiel</p><div class="co2-number" id="co2Savings">0</div>kg CO2/an</div>
-        <button class="btn-primary" onclick="generatePDF()">📄 Page Imprimable</button>
-        <div class="navigation-buttons"><button class="btn-outline" onclick="showStep(6)">⬅️ Modifier mes choix</button></div>
+        <h2>🎉 Votre bilan</h2>
+        <div class="co2-savings"><p>Gain potentiel</p><div class="co2-number" id="co2Savings">0</div><span>kg CO₂/an</span></div>
+        <button class="btn-primary" onclick="generatePDF()" style="margin-top:20px;">📄 Télécharger mon bilan</button>
       </div>
     </div>
 
     <!-- Admin -->
     <div id="adminPage" class="step">
       <div class="card glass-effect">
-        <h2>🔐 Admin</h2>
-        <div id="adminLogin"><input type="password" id="adminPassword" placeholder="Mot de passe" /><button class="btn-primary" onclick="adminLogin()">OK</button></div>
+        <h2>🔐 Administration</h2>
+        <div id="adminLogin"><input type="password" id="adminPassword" placeholder="Mot de passe" /><button class="btn-primary" onclick="adminLogin()">Connexion</button></div>
         <div id="adminPanel" style="display:none;">
             <h3>QR Entreprise</h3>
-            <input id="companyAddressInput" placeholder="Adresse" /><button class="btn-primary" onclick="generateCompanyQR()">Générer</button>
+            <input id="companyAddressInput" placeholder="Adresse de l'entreprise" /><button class="btn-primary" onclick="generateCompanyQR()">Générer</button>
             <div id="companyQRSection" style="display:none; background:white; padding:10px; border-radius:10px; margin-top:10px;">
                 <div id="companyQrcode"></div>
             </div>
-            <h3 style="margin-top:20px;">Données</h3>
-            <button class="btn-primary" onclick="exportExcel()">📥 Exporter Excel</button>
-            
-            <div class="navigation-buttons"><button class="btn-outline" onclick="showStep(1)">Retour</button></div>
+            <button class="btn-secondary" onclick="exportExcel()" style="margin-top:20px;">📥 Exporter Excel</button>
+            <button class="btn-outline" onclick="showStep(1)" style="margin-top:10px;">← Retour</button>
         </div>
       </div>
     </div>
@@ -282,46 +279,36 @@
     <!-- Invitation -->
     <div id="invitePage" class="step">
         <div class="card glass-effect invite-card">
-            <h2 style="color:#F59E0B;">📨 INVITATION</h2>
-            <p style="text-align:center; font-size:0.9em;">Ce code permet à un collègue de rejoindre le jeu.</p>
-            <p style="text-align:center; font-weight:bold; color:#ef4444;">NE PAS SCANNER POUR JOUER</p>
-            <div id="inviteTimer"></div>
+            <h2 style="color:#F59E0B;">📨 Inviter un collègue</h2>
+            <p style="text-align:center;">Montrez ce QR code à un collègue</p>
+            <div id="inviteTimer" style="text-align:center; margin:10px 0;"></div>
             <div class="qr-wrapper qr-invite-wrapper"><div id="inviteQrcode"></div></div>
-            <div class="navigation-buttons"><button class="btn-outline" onclick="showStep(1)">Retour</button></div>
+            <button class="btn-outline" onclick="showStep(1)">← Retour</button>
         </div>
     </div>
 
     <!-- Modale Multimodal -->
     <div id="multimodalModal" class="modal">
       <div class="modal-content glass-effect" style="background:#1e293b;">
-        <h2>🔄 Modes Multiples</h2>
-        <label>Choix du mode secondaire :</label>
+        <h2>🔄 Modes multiples</h2>
+        <label>Mode secondaire :</label>
         <select id="transportMode2" style="margin-top:10px;">
             <option value="">-- Choisir --</option>
-            <option value="car-thermal">🚗 Voiture thermique</option>
-            <option value="car-electric">⚡ Voiture élec</option>
+            <option value="car-thermal">🚗 Voiture</option>
             <option value="carpool">🚙 Covoiturage</option>
-            <option value="train">🚆 Train/RER</option>
+            <option value="train">🚆 Train</option>
             <option value="bus">🚌 Bus/Tram</option>
             <option value="bike">🚲 Vélo</option>
-            <option value="ebike">🚴 Vélo élec</option>
+            <option value="ebike">🚴 VAE</option>
             <option value="walk">🚶 Marche</option>
             <option value="remote">💻 Télétravail</option>
         </select>
-        
-        <p style="margin: 15px 0; font-weight:bold; opacity:0.8;">Répartition (jours par semaine) :</p>
-        <div style="display:flex; gap:10px; align-items:center; justify-content:center; margin-bottom:20px;">
-            <div style="text-align:center;">
-                <input type="number" id="mode1Days" value="3" min="0" max="5" style="width:60px; text-align:center;">
-                <div style="font-size:0.8em; margin-top:5px;">Jours Mode 1</div>
-            </div>
+        <p style="margin: 15px 0;">Répartition (jours/semaine) :</p>
+        <div style="display:flex; gap:10px; justify-content:center; margin-bottom:20px;">
+            <div style="text-align:center;"><input type="number" id="mode1Days" value="3" min="0" max="5" style="width:60px;"><div style="font-size:0.8em;">Mode 1</div></div>
             <div style="font-size:1.5em; opacity:0.5;">/</div>
-            <div style="text-align:center;">
-                <input type="number" id="mode2Days" value="2" min="0" max="5" style="width:60px; text-align:center;">
-                <div style="font-size:0.8em; margin-top:5px;">Jours Mode 2</div>
-            </div>
+            <div style="text-align:center;"><input type="number" id="mode2Days" value="2" min="0" max="5" style="width:60px;"><div style="font-size:0.8em;">Mode 2</div></div>
         </div>
-        
         <div class="navigation-buttons">
             <button class="btn-outline" onclick="closeMultimodal()">Annuler</button>
             <button class="btn-primary" onclick="saveMultimodal()">Valider</button>
