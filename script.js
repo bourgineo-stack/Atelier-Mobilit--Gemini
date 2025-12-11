@@ -37,27 +37,32 @@ const miniChallenges = [
       { title: "📸 Selfie mobilité", task: "Prenez un selfie créatif sur le thème du transport (devant un vélo, un panneau, dans une voiture...)", icon: "🤳", hasPhoto: true }
 ];
 
-// Questions "Maïeutiques" pour la phase de groupe
+// --- QUESTIONS OPTIMISÉES (NUDGE / SCIENCE COMPORTEMENTALE) ---
+
 const QUESTIONS_CLOSE = [
-    { q: "Si le tram/bus est en panne demain, comment venez-vous ?", sub: "Testez l'itinéraire vélo mentalement." },
-    { q: "Le vélo : plus facile tout seul ou à deux pour débuter ?", sub: "Qui pourrait être votre 'parrain' vélo ?" },
-    { q: "Connaissez-vous les aides pour l'achat d'un VAE ?", sub: "Jusqu'à 400€ par l'État + Abondement employeur parfois." },
-    { q: "Top Chrono : Qui gagne entre vélo et voiture à 18h ?", sub: "Sur 5km, le vélo met 15-20min constants. La voiture ?" },
-    { q: "La mobilité douce a-t-elle un lien avec votre santé ?", sub: "30min de vélo = sport journalier validé." }
+    { q: "Levez la main si vous avez déjà fait le trajet en vélo, même une seule fois.", sub: "Regardez autour de vous : la pratique existe déjà." },
+    { q: "Votre vrai frein au vélo, c'est quoi : transpiration, météo ou sécurité ?", sub: "Soyons honnêtes sur ce qui bloque vraiment." },
+    { q: "Top chrono : qui parie que le vélo bat la voiture en heure de pointe ?", sub: "Sur 5km, le vélo met 15-20min constants. Et vous ?" },
+    { q: "Entre arriver en sueur ou économiser 30€/mois, vous choisissez quoi ?", sub: "La question des douches et du FMD est centrale." },
+    { q: "Qui a déjà vu un collègue arriver en trottinette ou vélo pliant ?", sub: "La micro-mobilité permet de faire les derniers kilomètres sans effort." },
+    { q: "Si le bus passait 10 min plus tôt/tard, ça changerait tout pour vous ?", sub: "La flexibilité horaire est-elle une solution ?" },
+    { q: "À deux, on se challenge : qui fait domicile-bureau en vélo cette semaine ?", sub: "Trouvez un partenaire de route dans ce groupe." }
 ];
 
 const QUESTIONS_FAR = [
-    { q: "Imaginez un moyen de faire le 'dernier km' qui tiendrait dans le coffre ?", sub: "Trotinette, skate, vélo pliant ?" },
-    { q: "Comment s'organiser : Appli de covoit ou simple groupe WhatsApp ?", sub: "Qu'est-ce qui est le moins contraignant ?" },
-    { q: "Connaissez-vous quelqu'un qui a une voiture électrique ?", sub: "L'avez-vous déjà essayée ?" },
-    { q: "On fait comment pour les horaires si on covoiture ?", sub: "Faut-il être flexible ou rigide sur l'heure de départ ?" },
-    { q: "Connaissez-vous les services type 'GetAround' ?", sub: "Louer sa voiture quand elle ne sert pas au travail." }
+    { q: "Levez la main si vous partez entre 7h15 et 7h45 le matin.", sub: "Regardez bien : ce sont vos covoitureurs potentiels !" },
+    { q: "Combien de places vides dans vos voitures ce matin ? On compte ensemble.", sub: "C'est autant d'économies potentielles qui s'envolent." },
+    { q: "Votre vrai frein au covoiturage : horaires, détour, ou l'humain ?", sub: "La peur de l'inconnu ou la contrainte technique ?" },
+    { q: "Qui serait prêt à faire UN SEUL trajet test en covoiturage cette semaine ?", sub: "Pas d'engagement long terme, juste un essai." },
+    { q: "Votre vrai frein à l'électrique : prix, autonomie, ou recharge ?", sub: "Démystifions les blocages techniques." },
+    { q: "Qui habite à moins de 15 minutes d'une gare ?", sub: "Le train + vélo/trottinette est souvent imbattable sur le temps." },
+    { q: "Si vous récupériez 5h/semaine de trajet grâce au Télétravail, vous en feriez quoi ?", sub: "Sport, famille, sommeil ?" }
 ];
 
 // ================= UTILITAIRES =================
 function $(id) { return document.getElementById(id); }
 function generateUniqueId() { return Math.random().toString(36).substr(2, 15); }
-function generateEmojiPseudo() { return EMOJI_SET[Math.floor(Math.random()*EMOJI_SET.length)] + EMOJI_SET[Math.floor(Math.random()*EMOJI_SET.length)] + EMOJI_SET[Math.floor(Math.random()*EMOJI_SET.length)]; }
+function generateEmojiPseudo() { return EMOJI_SET[Math.floor(Math.random() * EMOJI_SET.length)] + EMOJI_SET[Math.floor(Math.random() * EMOJI_SET.length)] + EMOJI_SET[Math.floor(Math.random() * EMOJI_SET.length)]; }
 
 // TOASTS LISIBLES
 function showError(msg) {
@@ -84,25 +89,25 @@ function showSuccess(msg) {
 
 // ================= INIT & NAVIGATION =================
 document.addEventListener('DOMContentLoaded', () => {
-    if(new Date() > new Date(APP_CONFIG.EXPIRATION_DATE)) {
+    if (new Date() > new Date(APP_CONFIG.EXPIRATION_DATE)) {
         document.body.innerHTML = "<h1 style='color:white;text-align:center;margin-top:50px;'>Session Expirée</h1>";
         return;
     }
-    
+
     scanCanvas = document.getElementById('canvas');
-    if(scanCanvas) {
+    if (scanCanvas) {
         scanCtx = scanCanvas.getContext('2d', { willReadFrequently: true });
     }
 
     restoreUserData();
     checkRGPDStatus();
-    if($('multimodalCheck')) $('multimodalCheck').checked = false;
+    if ($('multimodalCheck')) $('multimodalCheck').checked = false;
 });
 
 function checkRGPDStatus() {
-    if(localStorage.getItem('rgpdAccepted') === 'true') {
+    if (localStorage.getItem('rgpdAccepted') === 'true') {
         rgpdAccepted = true;
-        if($('rgpdNotice')) $('rgpdNotice').style.display = 'none';
+        if ($('rgpdNotice')) $('rgpdNotice').style.display = 'none';
     }
 }
 
@@ -148,34 +153,34 @@ function showStep(n) {
     if (typeof n === 'string') {
         document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
         const target = $(n);
-        if(target) target.classList.add('active');
+        if (target) target.classList.add('active');
         stopAllCameras();
         return;
     }
     document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
     document.querySelectorAll('.step-dot').forEach(d => d.classList.remove('active'));
     const target = $(`step${n}`);
-    if(target) target.classList.add('active');
-    for(let i=1; i<=n; i++) {
+    if (target) target.classList.add('active');
+    for (let i = 1; i <= n; i++) {
         const dot = $(`step${i}Dot`);
-        if(dot) {
+        if (dot) {
             dot.classList.add('active');
-            if(i < n) dot.classList.add('completed');
+            if (i < n) dot.classList.add('completed');
         }
     }
     stopAllCameras();
-    if(n===2) setTimeout(()=>genMyQRCode('qrcode'), 100);
-    if(n===3) { initGame(); setTimeout(()=>genMyQRCode('qrcodeStep3'), 100); }
-    if(n===4) setTimeout(()=>genMyQRCode('qrcodeStep4'), 100);
-    if(n===5) updateStep5Stats();
-    if(n===6) initStep6Form();
-    window.scrollTo(0,0);
+    if (n === 2) setTimeout(() => genMyQRCode('qrcode'), 100);
+    if (n === 3) { initGame(); setTimeout(() => genMyQRCode('qrcodeStep3'), 100); }
+    if (n === 4) setTimeout(() => genMyQRCode('qrcodeStep4'), 100);
+    if (n === 5) updateStep5Stats();
+    if (n === 6) initStep6Form();
+    window.scrollTo(0, 0);
 }
 
 function checkAccessCode() {
-    if(!rgpdAccepted) return showError("Veuillez accepter le RGPD.");
+    if (!rgpdAccepted) return showError("Veuillez accepter le RGPD.");
     const code = $('accessCodeInput').value.trim();
-    if(APP_CONFIG.VALID_ACCESS_CODES.includes(code)) {
+    if (APP_CONFIG.VALID_ACCESS_CODES.includes(code)) {
         $('loginSection').style.display = 'none';
         $('locationSection').style.display = 'block';
     } else {
@@ -185,7 +190,7 @@ function checkAccessCode() {
 
 // ================= RESET =================
 function resetGameSequence() {
-    if(confirm("⚠️ ATTENTION : Voulez-vous vraiment recommencer à zéro ?\n\nCela effacera votre profil et vos scans.")) {
+    if (confirm("⚠️ ATTENTION : Voulez-vous vraiment recommencer à zéro ?\n\nCela effacera votre profil et vos scans.")) {
         localStorage.clear();
         location.reload(true);
     }
@@ -193,7 +198,7 @@ function resetGameSequence() {
 
 // ================= MULTIMODAL =================
 function toggleMultimodal() {
-    if($('multimodalCheck').checked) $('multimodalModal').classList.add('active');
+    if ($('multimodalCheck').checked) $('multimodalModal').classList.add('active');
 }
 function closeMultimodal() {
     $('multimodalModal').classList.remove('active');
@@ -215,18 +220,18 @@ function showInvitePage() {
     document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
     $('invitePage').classList.add('active');
     $('inviteQrcode').innerHTML = '';
-    new QRCode($('inviteQrcode'), { text: window.location.href, width: 200, height: 200, colorDark : "#0f172a", colorLight : "#ffffff" });
+    new QRCode($('inviteQrcode'), { text: window.location.href, width: 200, height: 200, colorDark: "#0f172a", colorLight: "#ffffff" });
     startInviteTimer();
 }
 function startInviteTimer() {
     let countdown = 30;
     const timerDisplay = $('inviteTimer');
-    if(inviteCountdownInterval) clearInterval(inviteCountdownInterval);
+    if (inviteCountdownInterval) clearInterval(inviteCountdownInterval);
     timerDisplay.innerHTML = `⏱️ Retour dans <strong>${countdown}s</strong>`;
     inviteCountdownInterval = setInterval(() => {
         countdown--;
         timerDisplay.innerHTML = `⏱️ Retour dans <strong>${countdown}s</strong>`;
-        if(countdown <= 0) { clearInterval(inviteCountdownInterval); showStep(2); }
+        if (countdown <= 0) { clearInterval(inviteCountdownInterval); showStep(2); }
     }, 1000);
 }
 function extendInviteTimer() { startInviteTimer(); }
@@ -235,43 +240,43 @@ function extendInviteTimer() { startInviteTimer(); }
 $('saveLocation').onclick = async () => {
     const addr = $('userAddress').value;
     const mode = $('transportMode').value;
-    if(!addr || !mode) return showError("Remplissez tous les champs");
-    
+    if (!addr || !mode) return showError("Remplissez tous les champs");
+
     try {
         $('saveLocation').textContent = "Recherche..."; $('saveLocation').disabled = true;
-        
+
         const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addr)}&addressdetails=1`);
         const data = await res.json();
-        if(!data.length) throw new Error("Adresse introuvable");
-        
+        if (!data.length) throw new Error("Adresse introuvable");
+
         myCoords = { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
         myFullAddress = data[0].display_name;
         myTransportMode = mode;
         myDepartureTime = $('departureTime').value;
-        
+
         localStorage.setItem('userCoords', JSON.stringify(myCoords));
         localStorage.setItem('transportMode', myTransportMode);
         localStorage.setItem('departureTime', myDepartureTime);
         localStorage.setItem('fullAddress', myFullAddress);
-        
-        if(!myUniqueId) { myUniqueId = generateUniqueId(); localStorage.setItem('myUniqueId', myUniqueId); }
-        if(!myEmoji) { myEmoji = generateEmojiPseudo(); localStorage.setItem('myEmoji', myEmoji); }
-        
+
+        if (!myUniqueId) { myUniqueId = generateUniqueId(); localStorage.setItem('myUniqueId', myUniqueId); }
+        if (!myEmoji) { myEmoji = generateEmojiPseudo(); localStorage.setItem('myEmoji', myEmoji); }
+
         $('locationSection').style.display = 'none';
         $('afterLocationSection').style.display = 'block';
         $('myEmojiDisplay').textContent = myEmoji;
-        
+
         const addrDisplay = $('detectedAddress');
-        if(addrDisplay) addrDisplay.textContent = myFullAddress.split(',').slice(0, 2).join(',');
-        
+        if (addrDisplay) addrDisplay.textContent = myFullAddress.split(',').slice(0, 2).join(',');
+
         const payload = {
-            type: 'participant', id: myUniqueId, emoji: myEmoji, lat: myCoords.lat, lon: myCoords.lon, 
+            type: 'participant', id: myUniqueId, emoji: myEmoji, lat: myCoords.lat, lon: myCoords.lon,
             address: myFullAddress, transport: myTransportMode, transportMode2: myTransportMode2,
             mode1Days: mode1Days, mode2Days: mode2Days, departureTime: myDepartureTime
         };
-        if(googleScriptUrl) fetch(googleScriptUrl, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
-        
-    } catch(e) {
+        if (googleScriptUrl) fetch(googleScriptUrl, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
+
+    } catch (e) {
         showError(e.message);
         $('saveLocation').textContent = "Valider ma localisation"; $('saveLocation').disabled = false;
     }
@@ -281,121 +286,244 @@ function restoreUserData() {
     myUniqueId = localStorage.getItem('myUniqueId');
     myEmoji = localStorage.getItem('myEmoji');
     const coords = localStorage.getItem('userCoords');
-    if(coords) myCoords = JSON.parse(coords);
+    if (coords) myCoords = JSON.parse(coords);
     myTransportMode = localStorage.getItem('transportMode');
     myTransportMode2 = localStorage.getItem('transportMode2') || '';
     mode1Days = parseInt(localStorage.getItem('mode1Days') || '0');
     mode2Days = parseInt(localStorage.getItem('mode2Days') || '0');
     const saved = localStorage.getItem('participants');
-    if(saved) { participants = JSON.parse(saved); scanCount = participants.length; } else { scanCount = 0; }
+    if (saved) { participants = JSON.parse(saved); scanCount = participants.length; } else { scanCount = 0; }
 }
 
 // ================= CAMERA & QR =================
 function genMyQRCode(elId) {
     const el = $(elId);
-    if(!el) return;
+    if (!el) return;
     el.innerHTML = '';
     new QRCode(el, {
         text: JSON.stringify({ id: myUniqueId, lat: myCoords.lat, lon: myCoords.lon }),
         width: 180, height: 180,
-        colorDark : "#0f172a", colorLight : "#ffffff"
+        colorDark: "#0f172a", colorLight: "#ffffff"
     });
 }
 
 function startScanLoop(type) {
     scanning = true;
-    const camViewId = type === 'group' ? 'groupCameraView' : (type === 'game' ? 'gameCameraView' : (type === 'company' ? 'companyCameraView' : (type === 'positioning' ? 'positioningCameraView' : 'cameraView')));
-    const videoId = type === 'group' ? 'groupVideo' : (type === 'game' ? 'gameVideo' : (type === 'company' ? 'companyVideo' : (type === 'positioning' ? 'positioningVideo' : 'video')));
-    const btnId = type === 'game' ? 'gameScanBtn' : (type === 'company' ? null : (type === 'positioning' ? 'positioningScanBtn' : 'scanBtn'));
-    const stopBtnId = type === 'game' ? 'stopGameCamBtn' : (type === 'company' ? 'stopCompCamBtn' : (type === 'positioning' ? 'stopPosCamBtn' : 'stopCamBtn'));
 
-    if(type === 'group') {
+    // Définition des IDs en fonction du type
+    let camViewId, videoId, btnId, stopBtnId;
+
+    if (type === 'group') {
+        camViewId = 'groupCameraView';
+        videoId = 'groupVideo';
+        btnId = null; // Pas de bouton à cacher ici, géré par l'interface
+        stopBtnId = null;
+        // On affiche l'interface spécifique
         $('groupScanInterface').style.display = 'block';
     } else {
-        if(btnId && $(btnId)) $(btnId).style.display = 'none';
-        if($(camViewId)) $(camViewId).style.display = 'block';
-        if($(stopBtnId)) $(stopBtnId).style.display = 'block';
+        // Types classiques (normal, game, company, positioning)
+        camViewId = type === 'game' ? 'gameCameraView' : (type === 'company' ? 'companyCameraView' : (type === 'positioning' ? 'positioningCameraView' : 'cameraView'));
+        videoId = type === 'game' ? 'gameVideo' : (type === 'company' ? 'companyVideo' : (type === 'positioning' ? 'positioningVideo' : 'video'));
+        btnId = type === 'game' ? 'gameScanBtn' : (type === 'company' ? null : (type === 'positioning' ? 'positioningScanBtn' : 'scanBtn'));
+        stopBtnId = type === 'game' ? 'stopGameCamBtn' : (type === 'company' ? 'stopCompCamBtn' : (type === 'positioning' ? 'stopPosCamBtn' : 'stopCamBtn'));
+
+        if (btnId && $(btnId)) $(btnId).style.display = 'none';
+        if ($(camViewId)) $(camViewId).style.display = 'block';
+        if ($(stopBtnId)) $(stopBtnId).style.display = 'block';
     }
 
     const video = $(videoId);
+    if (!video) return;
+
     navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
-    .then(stream => {
-        video.srcObject = stream;
-        video.setAttribute("playsinline", true);
-        video.play();
-        requestAnimationFrame(() => tick(video, type));
-    })
-    .catch(err => { showError("Erreur caméra"); stopAllCameras(); });
+        .then(stream => {
+            video.srcObject = stream;
+            video.setAttribute("playsinline", true);
+            video.play();
+            requestAnimationFrame(() => tick(video, type));
+        })
+        .catch(err => { showError("Erreur caméra: " + err.message); stopAllCameras(); });
 }
 
 function tick(video, type) {
-    if(!scanning) return;
-    if(video.readyState === video.HAVE_ENOUGH_DATA) {
-        if(!scanCanvas) {
+    if (!scanning) return;
+    if (video.readyState === video.HAVE_ENOUGH_DATA) {
+        if (!scanCanvas) {
             scanCanvas = document.getElementById('canvas');
             scanCtx = scanCanvas.getContext('2d', { willReadFrequently: true });
         }
         scanCanvas.width = video.videoWidth;
         scanCanvas.height = video.videoHeight;
         scanCtx.drawImage(video, 0, 0);
-        const code = jsQR(scanCtx.getImageData(0,0,scanCanvas.width,scanCanvas.height).data, scanCanvas.width, scanCanvas.height);
-        
-        if(code) {
+        const code = jsQR(scanCtx.getImageData(0, 0, scanCanvas.width, scanCanvas.height).data, scanCanvas.width, scanCanvas.height);
+
+        if (code) {
             try {
                 const data = JSON.parse(code.data);
                 let success = false;
-                if(type === 'group' && data.id) { addMemberToGroup(data); } // Pas de success=true pour continuer
-                else if(type === 'company' && data.type === 'company') { handleCompanyScan(data); success = true; }
-                else if(data.id && data.lat) {
-                    if(type === 'game') success = handleGameScan(data);
-                    else if(type === 'positioning') success = handlePositioningScan(data);
+
+                // --- LOGIQUE DE SCAN CENTRALISÉE ---
+                if (type === 'group') {
+                    // Pour le groupe, on scanne en boucle sans fermer la caméra
+                    if (data.id) {
+                        addMemberToGroup(data);
+                        // On ne met pas success=true pour ne pas stopper la caméra
+                    }
+                }
+                else if (type === 'company' && data.type === 'company') {
+                    handleCompanyScan(data);
+                    success = true;
+                }
+                else if (data.id && data.lat) {
+                    if (type === 'game') success = handleGameScan(data);
+                    else if (type === 'positioning') success = handlePositioningScan(data);
                     else success = addParticipant(data);
                 }
-                if(success) stopAllCameras();
-            } catch(e) {}
+
+                if (success) stopAllCameras();
+
+            } catch (e) { }
         }
     }
-    if(scanning) requestAnimationFrame(() => tick(video, type));
+    if (scanning) requestAnimationFrame(() => tick(video, type));
 }
 
 function stopAllCameras() {
     scanning = false;
     document.querySelectorAll('video').forEach(v => {
-        if(v.srcObject) v.srcObject.getTracks().forEach(t => t.stop());
+        if (v.srcObject) v.srcObject.getTracks().forEach(t => t.stop());
         v.srcObject = null;
     });
     document.querySelectorAll('.camera-container').forEach(e => e.style.display = 'none');
-    ['scanBtn', 'gameScanBtn', 'positioningScanBtn'].forEach(id => { if($(id)) $(id).style.display = 'block'; });
-    ['stopCamBtn', 'stopGameCamBtn', 'stopPosCamBtn', 'stopCompCamBtn'].forEach(id => { if($(id)) $(id).style.display = 'none'; });
+
+    // Réafficher les boutons
+    ['scanBtn', 'gameScanBtn', 'positioningScanBtn'].forEach(id => { if ($(id)) $(id).style.display = 'block'; });
+    // Cacher les boutons stop
+    ['stopCamBtn', 'stopGameCamBtn', 'stopPosCamBtn', 'stopCompCamBtn'].forEach(id => { if ($(id)) $(id).style.display = 'none'; });
+}
+
+// ================= PHASE CO-CONSTRUCTION (GROUPE) =================
+function initGroupPhase() {
+    // 1. Tirage au sort du chef
+    const challenges = [
+        "Le plus jeune du groupe",
+        "Celui avec les cheveux les plus longs",
+        "Celui qui fait le mieux le grand écart",
+        "Celui qui tire la langue le plus loin"
+    ];
+    const winner = challenges[Math.floor(Math.random() * challenges.length)];
+    $('leaderChallenge').innerHTML = `👑 Le chef est : <br><span style="color:#F59E0B; font-size:1.2em;">${winner}</span>`;
+    
+    // 2. Afficher interface scan
+    $('startGroupBtn').style.display = 'none';
+    $('groupScanInterface').style.display = 'block';
+    
+    // 3. Reset groupe
+    currentGroup = [];
+    updateGroupList();
+}
+
+function addMemberToGroup(data) {
+    // Anti-doublon et auto-scan
+    if(currentGroup.find(m => m.id === data.id)) return;
+    if(data.id === myUniqueId) { showError("Vous êtes déjà le chef !"); return; }
+    
+    currentGroup.push(data);
+    updateGroupList();
+    showSuccess(`${data.emoji || 'Membre'} ajouté !`);
+    
+    // Pause technique pour éviter le scan multiple immédiat
+    scanning = false;
+    setTimeout(() => { scanning = true; requestAnimationFrame(() => tick($('groupVideo'), 'group')); }, 1500);
+}
+
+function updateGroupList() {
+    const list = $('groupMembersList');
+    list.innerHTML = currentGroup.map(m => `<div>✅ ${m.emoji || '👤'} (ajouté)</div>`).join('');
+    
+    // Activer bouton si au moins 1 membre scanné
+    $('validateGroupBtn').disabled = currentGroup.length < 1;
+}
+
+function validateGroup() {
+    stopAllCameras();
+    
+    // Envoi sheet
+    sendToGoogleSheets({
+        type: 'group_formation',
+        leaderId: myUniqueId,
+        members: currentGroup.map(m => m.id).join(',')
+    });
+    
+    // Passage à la phase 2 : Discussion
+    $('groupFormationSection').style.display = 'none';
+    $('groupDiscussionSection').style.display = 'block';
+}
+
+// Phase 2 : Discussion Dynamique
+function startDiscussion(type) {
+    currentQuestions = type === 'close' ? QUESTIONS_CLOSE : QUESTIONS_FAR;
+    questionIndex = 0;
+    
+    // Highlight bouton
+    document.querySelectorAll('.coach-btn').forEach(b => b.classList.remove('selected'));
+    event.target.classList.add('selected');
+    
+    // Afficher carte question
+    $('dynamicQuestionCard').style.display = 'block';
+    showNextQuestion();
+}
+
+function showNextQuestion() {
+    if(questionIndex >= currentQuestions.length) {
+        $('questionText').textContent = "👏 Tour de table terminé !";
+        $('questionSubtext').textContent = "Prenez maintenant une note commune ci-dessous.";
+        $('dynamicQuestionCard').querySelector('button').style.display = 'none';
+        return;
+    }
+    
+    const q = currentQuestions[questionIndex];
+    $('questionText').textContent = q.q;
+    $('questionSubtext').textContent = q.sub;
+    
+    // Animation simple
+    const card = $('dynamicQuestionCard');
+    card.style.opacity = 0;
+    setTimeout(() => card.style.opacity = 1, 100);
+}
+
+function nextQuestion() {
+    questionIndex++;
+    showNextQuestion();
 }
 
 // ================= LOGIQUE METIER =================
 function haversineKm(lat1, lon1, lat2, lon2) {
-    const R = 6371; 
-    const dLat = (lat2-lat1)*Math.PI/180; const dLon = (lon2-lon1)*Math.PI/180;
-    const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
-    return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180; const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+    return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
 function addParticipant(data) {
-    if(participants.find(p => p.id === data.id)) return false;
-    if(data.id === myUniqueId) return false;
-    
+    if (participants.find(p => p.id === data.id)) return false;
+    if (data.id === myUniqueId) return false;
+
     const dist = haversineKm(myCoords.lat, myCoords.lon, data.lat, data.lon);
     participants.push({ ...data, distance: dist });
     localStorage.setItem('participants', JSON.stringify(participants));
-    
+
     scanCount = participants.length;
     localStorage.setItem('scanCount', scanCount);
     $('scanCount').textContent = scanCount;
-    $('step2Progress').style.width = Math.min((scanCount/20)*100, 100) + '%';
-    
+    $('step2Progress').style.width = Math.min((scanCount / 20) * 100, 100) + '%';
+
     showSuccess(`Scan OK ! (${dist.toFixed(1)} km)`);
-    
-    if(participants.length >= APP_CONFIG.MIN_PARTICIPANTS_REQUIRED) $('goToStep3').disabled = false;
-    
-    if(dist < 5) {
-        const chal = miniChallenges[Math.floor(Math.random()*miniChallenges.length)];
+
+    if (participants.length >= APP_CONFIG.MIN_PARTICIPANTS_REQUIRED) $('goToStep3').disabled = false;
+
+    if (dist < 5) {
+        const chal = miniChallenges[Math.floor(Math.random() * miniChallenges.length)];
         $('challengeTitle').textContent = chal.title;
         $('challengeTask').textContent = chal.task;
         $('challengeSection').style.display = 'block';
@@ -405,7 +533,7 @@ function addParticipant(data) {
             $('scanBtn').style.display = 'block';
         };
     }
-    
+
     sendToGoogleSheets({
         type: 'scan', scannerId: myUniqueId, scannerEmoji: myEmoji,
         scannedId: data.id, distance: dist, step: 2, totalScans: scanCount
@@ -422,8 +550,8 @@ function handlePositioningScan(data) {
 }
 
 function initGame() {
-    if(participants.length < 1) return;
-    gameTargets = participants.sort((a,b) => a.distance - b.distance).slice(0, 5);
+    if (participants.length < 1) return;
+    gameTargets = participants.sort((a, b) => a.distance - b.distance).slice(0, 5);
     scannedTargets = []; score = 0; attemptsLeft = 5;
     updateGameUI();
 }
@@ -436,7 +564,7 @@ function updateGameUI() {
         const isScanned = scannedTargets.includes(t.id);
         html += `
         <div class="participant-card ${isScanned ? 'scanned' : 'target'}">
-            <div><strong>Voisin ${i+1}</strong><br><small>${t.distance.toFixed(1)} km</small></div>
+            <div><strong>Voisin ${i + 1}</strong><br><small>${t.distance.toFixed(1)} km</small></div>
             <div class="icon-badge">${isScanned ? '✅' : '🎯'}</div>
         </div>`;
     });
@@ -445,15 +573,15 @@ function updateGameUI() {
 
 function handleGameScan(data) {
     const target = gameTargets.find(t => t.id === data.id);
-    if(!target) { showError("Ce n'est pas un voisin proche !"); return false; }
-    if(scannedTargets.includes(data.id)) { showError("Déjà trouvé !"); return false; }
-    
+    if (!target) { showError("Ce n'est pas un voisin proche !"); return false; }
+    if (scannedTargets.includes(data.id)) { showError("Déjà trouvé !"); return false; }
+
     scannedTargets.push(data.id);
     score++;
     showSuccess("Bravo ! Voisin trouvé.");
     updateGameUI();
-    
-    if(score >= 3) {
+
+    if (score >= 3) {
         $('gameResult').innerHTML = `<div class="success-msg">🎉 GAGNÉ !</div>`;
         $('gameScanBtn').style.display = 'none';
         sendToGoogleSheets({
@@ -471,66 +599,11 @@ function resetGame() {
     $('gameResult').innerHTML = '';
 }
 
-// ================= PHASE CO-CONSTRUCTION (GROUPE) =================
-function initGroupPhase() {
-    const challenges = ["Le plus jeune", "Cheveux les plus longs", "Meilleur grand écart", "Tire la langue le plus loin"];
-    const winner = challenges[Math.floor(Math.random() * challenges.length)];
-    $('leaderChallenge').innerHTML = `👑 Le chef est : <br><span style="color:#F59E0B; font-size:1.2em;">${winner}</span>`;
-    $('startGroupBtn').style.display = 'none';
-    $('groupScanInterface').style.display = 'block';
-    currentGroup = [];
-    updateGroupList();
-}
-
-function addMemberToGroup(data) {
-    if(currentGroup.find(m => m.id === data.id)) return;
-    if(data.id === myUniqueId) { showError("Vous êtes déjà le chef !"); return; }
-    currentGroup.push(data);
-    updateGroupList();
-    showSuccess(`${data.emoji || 'Membre'} ajouté !`);
-    scanning = false; // Petite pause
-    setTimeout(() => { scanning = true; requestAnimationFrame(() => tick($('groupVideo'), 'group')); }, 1500);
-}
-
-function updateGroupList() {
-    $('groupMembersList').innerHTML = currentGroup.map(m => `<div>✅ ${m.emoji || '👤'} (ajouté)</div>`).join('');
-    $('validateGroupBtn').disabled = currentGroup.length < 1;
-}
-
-function validateGroup() {
-    stopAllCameras();
-    sendToGoogleSheets({ type: 'group_formation', leaderId: myUniqueId, members: currentGroup.map(m => m.id).join(',') });
-    $('groupFormationSection').style.display = 'none';
-    $('groupDiscussionSection').style.display = 'block';
-}
-
-function startDiscussion(type) {
-    currentQuestions = type === 'close' ? QUESTIONS_CLOSE : QUESTIONS_FAR;
-    questionIndex = 0;
-    document.querySelectorAll('.coach-btn').forEach(b => b.classList.remove('selected'));
-    event.target.classList.add('selected');
-    $('dynamicQuestionCard').style.display = 'block';
-    showNextQuestion();
-}
-
-function showNextQuestion() {
-    if(questionIndex >= currentQuestions.length) {
-        $('questionText').textContent = "👏 Tour de table terminé !";
-        $('questionSubtext').textContent = "Prenez maintenant une note commune ci-dessous.";
-        $('dynamicQuestionCard').querySelector('button').style.display = 'none';
-        return;
-    }
-    const q = currentQuestions[questionIndex];
-    $('questionText').textContent = q.q;
-    $('questionSubtext').textContent = q.sub;
-}
-function nextQuestion() { questionIndex++; showNextQuestion(); }
-
 // ================= FORMULAIRE AVEC HIERARCHIE =================
 function initStep6Form() {
     const createFields = (listId, items, type) => {
         const list = $(listId);
-        if(list.children.length > 0) return;
+        if (list.children.length > 0) return;
 
         items.forEach((item, i) => {
             const isOther = item.toLowerCase().includes("autre");
@@ -546,7 +619,7 @@ function initStep6Form() {
                         <option value="3">Prio 3</option>
                     </select>
                 </div>`;
-            if(isOther) html += `<input type="text" id="${type}Input${i}" class="other-input" placeholder="Précisez..." style="display:none;">`;
+            if (isOther) html += `<input type="text" id="${type}Input${i}" class="other-input" placeholder="Précisez..." style="display:none;">`;
             html += `</div>`;
             list.innerHTML += html;
         });
@@ -558,22 +631,22 @@ function initStep6Form() {
 }
 
 function handleOptionChange(checkbox, type, name, index, isOther) {
-    if(isOther) {
+    if (isOther) {
         const input = document.getElementById(`${type}Input${index}`);
-        if(input) input.style.display = checkbox.checked ? 'block' : 'none';
+        if (input) input.style.display = checkbox.checked ? 'block' : 'none';
     }
-    
+
     const capType = type.charAt(0).toUpperCase() + type.slice(1);
     const prioSelect = document.getElementById(`prio${capType}${index}`);
-    
-    if(prioSelect) {
+
+    if (prioSelect) {
         prioSelect.style.display = checkbox.checked ? 'block' : 'none';
     }
 
     let targetObj = (type === 'alt') ? selectedAlternatives : (type === 'cons' ? selectedConstraints : selectedLevers);
-    
-    if(checkbox.checked) {
-        targetObj[name] = "1"; 
+
+    if (checkbox.checked) {
+        targetObj[name] = "1";
     } else {
         delete targetObj[name];
     }
@@ -581,7 +654,7 @@ function handleOptionChange(checkbox, type, name, index, isOther) {
 
 function updatePriority(type, name, value) {
     let targetObj = (type === 'alt') ? selectedAlternatives : (type === 'cons' ? selectedConstraints : selectedLevers);
-    if(targetObj[name]) targetObj[name] = value;
+    if (targetObj[name]) targetObj[name] = value;
 }
 
 function updateCommitmentValue() {
@@ -590,6 +663,7 @@ function updateCommitmentValue() {
 }
 
 function showCompanyScan() {
+    // Save group note first (si elle existe)
     const noteField = $('groupNote');
     if(noteField) {
         localStorage.setItem('groupNote', noteField.value);
@@ -598,10 +672,10 @@ function showCompanyScan() {
     const formatData = (obj, listId, typePrefix) => {
         return Object.entries(obj).map(([k, v]) => {
             let displayName = k;
-            if(k.toLowerCase().includes("autre")) {
+            if (k.toLowerCase().includes("autre")) {
                 const inputs = document.querySelectorAll(`#${listId} .other-input`);
-                for(let inp of inputs) {
-                    if(inp.style.display !== 'none' && inp.value) {
+                for (let inp of inputs) {
+                    if (inp.style.display !== 'none' && inp.value) {
                         displayName = `Autre: ${inp.value}`;
                         break;
                     }
@@ -629,6 +703,7 @@ function showCompanyScan() {
     $('companyScanPage').classList.add('active');
     $('step6').classList.remove('active');
     
+    // Important: cacher l'étape co-construction si elle était active
     const coConst = $('stepCoConstruction');
     if(coConst) coConst.classList.remove('active');
 
@@ -644,7 +719,7 @@ function showAdminPage() {
 }
 
 function adminLogin() {
-    if($('adminPassword').value === APP_CONFIG.ADMIN_PASSWORD) {
+    if ($('adminPassword').value === APP_CONFIG.ADMIN_PASSWORD) {
         $('adminLogin').style.display = 'none';
         $('adminPanel').style.display = 'block';
         refreshAdminStats();
@@ -653,26 +728,26 @@ function adminLogin() {
 
 async function generateCompanyQR() {
     const addr = $('companyAddressInput').value;
-    if(!addr) return showError("Entrez une adresse");
-    
+    if (!addr) return showError("Entrez une adresse");
+
     try {
         $('companyQrcode').innerHTML = 'Génération...';
         const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addr)}&addressdetails=1`);
         const data = await res.json();
-        
-        if(!data.length) throw new Error("Adresse introuvable");
-        
+
+        if (!data.length) throw new Error("Adresse introuvable");
+
         const lat = parseFloat(data[0].lat);
         const lon = parseFloat(data[0].lon);
-        
+
         $('companyQrcode').innerHTML = '';
         new QRCode($('companyQrcode'), {
             text: JSON.stringify({ type: 'company', lat: lat, lon: lon }),
             width: 200, height: 200
         });
         $('companyQRSection').style.display = 'flex';
-        
-    } catch(e) {
+
+    } catch (e) {
         showError("Erreur adresse");
         $('companyQrcode').innerHTML = '';
     }
@@ -681,7 +756,7 @@ async function generateCompanyQR() {
 function updateStep5Stats() {
     const total = participants.length + 1;
     $('totalParticipants').textContent = total;
-    if(participants.length > 0) {
+    if (participants.length > 0) {
         const avg = participants.reduce((acc, p) => acc + p.distance, 0) / participants.length;
         $('avgDistance').textContent = avg.toFixed(1);
     }
@@ -690,27 +765,27 @@ function updateStep5Stats() {
 function handleCompanyScan(data) {
     companyCoords = { lat: data.lat, lon: data.lon };
     const dist = haversineKm(myCoords.lat, myCoords.lon, companyCoords.lat, companyCoords.lon);
-    
+
     let factor = CO2_FACTORS[myTransportMode] || 0.1;
-    const co2 = Math.round(dist * 2 * 220 * factor * 0.3); 
-    
+    const co2 = Math.round(dist * 2 * 220 * factor * 0.3);
+
     $('co2Savings').textContent = co2;
-    
+
     stopAllCameras();
     $('companyScanPage').classList.remove('active');
     $('reportPage').classList.add('active');
-    
+
     sendToGoogleSheets({ type: 'company_distance', participantId: myUniqueId, emoji: myEmoji, distance: dist });
 }
 
 function sendToGoogleSheets(data) {
-    if(!googleScriptUrl) return;
+    if (!googleScriptUrl) return;
     fetch(googleScriptUrl, { method: 'POST', mode: 'no-cors', body: JSON.stringify(data) })
         .catch(e => console.error("Erreur envoi", e));
 }
 
 function resetAllData() {
-    if(confirm("⚠️ DANGER : Pour tout effacer, tapez 'SUPPRIMER'")) {
+    if (confirm("⚠️ DANGER : Pour tout effacer, tapez 'SUPPRIMER'")) {
         localStorage.clear();
         location.reload();
     }
@@ -720,18 +795,18 @@ async function exportExcel() {
     const btn = document.querySelector('#adminPanel .btn-primary');
     const originalText = btn.innerText;
     btn.innerText = "Téléchargement...";
-    
+
     try {
         const res = await fetch(googleScriptUrl + '?action=get');
         const data = await res.json();
-        
+
         const wb = XLSX.utils.book_new();
-        if(data.participants) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data.participants), "Participants");
-        if(data.scans) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data.scans), "Scans");
+        if (data.participants) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data.participants), "Participants");
+        if (data.scans) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data.scans), "Scans");
         XLSX.writeFile(wb, "Atelier_Mobilite_Export.xlsx");
         showSuccess("Export réussi !");
-        
-    } catch(e) {
+
+    } catch (e) {
         console.warn("Export Google échoué, fallback local");
         const wb = XLSX.utils.book_new();
         const localParts = participants.map(p => ({ Emoji: p.emoji, Distance: p.distance, Mode: p.transport }));
@@ -743,7 +818,7 @@ async function exportExcel() {
 
 function refreshAdminStats() {
     $('adminTotalUsers').textContent = participants.length + 1;
-    if(participants.length > 0) {
+    if (participants.length > 0) {
         const avg = participants.reduce((acc, p) => acc + p.distance, 0) / participants.length;
         $('adminAvgDistance').textContent = avg.toFixed(1);
     }
@@ -782,7 +857,7 @@ function generatePDF() {
     <div class="card">
         <h2>🌍 Impact & Réseau</h2>
         <p><strong>Gain potentiel :</strong> <span style="color:#10b981;font-weight:bold;font-size:1.5em;">${$('co2Savings').textContent} kg CO2/an</span></p>
-        <p><strong>Voisins trouvés :</strong> ${participants.slice(0,5).length}</p>
+        <p><strong>Voisins trouvés :</strong> ${participants.slice(0, 5).length}</p>
     </div>
 
     <div class="card">
