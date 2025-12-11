@@ -4,12 +4,8 @@
   <meta charset="UTF-8">
   <title>Atelier Mobilité</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
-  <!-- Police -->
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
-  <!-- Lien vers le CSS -->
   <link rel="stylesheet" href="style.css">
-  
-  <!-- Bibliothèques externes -->
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -125,13 +121,10 @@
             <p style="margin-top:5px;">Le but est de quadriller la zone ensemble.</p>
         </div>
         
-        <!-- VISUEL EXPLICATIF AMÉLIORÉ -->
         <div class="map-schematic">
-            <!-- Repères fixes -->
             <div class="map-point fixed p-fix1">🔳</div>
             <div class="map-point fixed p-fix2">🔳</div>
             <div class="map-point fixed p-fix3">🔳</div>
-            <!-- Participants mobiles -->
             <div class="map-point mobile p-mob1">👤</div>
             <div class="map-point mobile p-mob2">👤</div>
             <div class="map-point mobile p-mob3">👤</div>
@@ -142,6 +135,7 @@
         <div class="qr-wrapper-small"><div id="qrcodeStep4"></div></div>
         <div class="camera-container" id="positioningCameraView" style="display:none;"><video id="positioningVideo" autoplay playsinline muted></video></div>
         <button class="btn-outline" id="stopPosCamBtn" style="display:none;" onclick="stopAllCameras()">🛑 Arrêter</button>
+        <!-- Texte corrigé ici -->
         <button class="btn-primary" id="positioningScanBtn" onclick="startScanLoop('positioning')">📱 Scanner QR code repère ou participant</button>
         
         <div class="navigation-buttons">
@@ -172,12 +166,11 @@
       </div>
     </div>
 
-    <!-- NOUVELLE ÉTAPE : CO-CONSTRUCTION (Groupes) -->
+    <!-- CO-CONSTRUCTION -->
     <div id="stepCoConstruction" class="step">
         <div class="card glass-effect">
             <h2>💡 Co-Construction</h2>
 
-            <!-- SECTION 1 : FORMATION DU GROUPE -->
             <div id="groupFormationSection">
                 <div class="info-box" style="background: #e0f2fe; color: #0c4a6e; border-left: 4px solid #0ea5e9;">
                     <h3>👥 Formez votre équipe !</h3>
@@ -199,7 +192,6 @@
                 <button class="btn-primary" id="startGroupBtn" onclick="initGroupPhase()">🎲 Désigner le chef et scanner</button>
             </div>
 
-            <!-- SECTION 2 : DISCUSSION (Cachée au début) -->
             <div id="groupDiscussionSection" style="display:none;">
                 <h3 style="text-align:center; margin-bottom:15px;">Quelle est votre réalité ?</h3>
                 <div class="coach-selector">
@@ -207,7 +199,6 @@
                     <button class="btn-outline coach-btn" onclick="startDiscussion('far')">🛣️ Éloigné (> 5km)</button>
                 </div>
 
-                <!-- Carte Question Dynamique -->
                 <div id="dynamicQuestionCard" style="display:none; margin-top:20px; padding:20px; background:white; color:#333; border-radius:15px; box-shadow:0 10px 25px rgba(0,0,0,0.2); text-align:center;">
                     <div style="font-size:2em; margin-bottom:10px;">💬</div>
                     <h3 id="questionText" style="color:var(--primary); margin-bottom:15px;">Question</h3>
@@ -215,7 +206,6 @@
                     <button class="btn-primary" onclick="nextQuestion()">Question Suivante ➡️</button>
                 </div>
 
-                <!-- Note Groupe -->
                 <div style="margin-top:30px;">
                     <label>📝 Une idée clé à retenir ?</label>
                     <textarea id="groupNote" rows="3" placeholder="Notez ici la meilleure idée du groupe..." style="width:100%; padding:10px; border-radius:10px; background:rgba(0,0,0,0.3); color:white; border:1px solid rgba(255,255,255,0.2); font-family:inherit;"></textarea>
@@ -289,7 +279,7 @@
       </div>
     </div>
 
-    <!-- Invitation DISTINCTE -->
+    <!-- Invitation -->
     <div id="invitePage" class="step">
         <div class="card glass-effect invite-card">
             <h2 style="color:#F59E0B;">📨 INVITATION</h2>
