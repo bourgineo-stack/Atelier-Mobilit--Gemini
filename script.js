@@ -443,11 +443,10 @@ function genMyQRCode(elId) {
     el.innerHTML = '';
     
     // Créer les données du QR code (format compact)
-    const qrData = JSON.stringify({ 
-        id: myUniqueId, 
-        lat: Math.round(myCoords.lat * 10000) / 10000,
-        lon: Math.round(myCoords.lon * 10000) / 10000,
-        e: myEmoji
+   const qrData = JSON.stringify({ 
+        id: myUniqueId.substring(0, 12), 
+        lat: Math.round(myCoords.lat * 1000) / 1000,
+        lon: Math.round(myCoords.lon * 1000) / 1000
     });
     
     console.log('[QR] Données QR:', qrData);
