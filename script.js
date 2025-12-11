@@ -30,32 +30,52 @@ const CONSTRAINTS = ["Horaires décalés", "Enfants", "Matériel", "Distance >30
 const LEVERS = ["Prime mobilité", "Abonnement TC 75%", "Parking vélo", "Douches", "Recharge élec", "Covoiturage interne", "Vélos fonction", "Formation", "Autre (précisez)"];
 
 const miniChallenges = [
-    { title: "🤝 Connecteurs", task: "Présentez-vous mutuellement à une 3ème personne que vous scannerez ensemble", icon: "🎭" },
-    { title: "🔤 Chasseurs d'initiales", task: "Scannez 2 personnes dont les prénoms commencent par la même lettre", icon: "🎲" },
-    { title: "🕵️ Devine mon adresse", task: "Scannez quelqu'un et tentez de deviner l'adresse qu'il a renseignée (rue, quartier...)", icon: "🏘️" },
-    { title: "🆘 Entraide", task: "Trouvez quelqu'un qui semble perdu ou qui a scanné peu de personnes et aidez-le !", icon: "🤲" },
-    { title: "📸 Selfie mobilité", task: "Prenez un selfie créatif sur le thème du transport (devant un vélo, un panneau, dans une voiture...)", icon: "🤳", hasPhoto: true }
+      { title: "🤝 Connecteurs", task: "Présentez-vous mutuellement à une 3ème personne que vous scannerez ensemble", icon: "🎭" },
+      { title: "🔤 Chasseurs d'initiales", task: "Scannez 2 personnes dont les prénoms commencent par la même lettre", icon: "🎲" },
+      { title: "🕵️ Devine mon adresse", task: "Scannez quelqu'un et tentez de deviner l'adresse qu'il a renseignée (rue, quartier...)", icon: "🏘️" },
+      { title: "🆘 Entraide", task: "Trouvez quelqu'un qui semble perdu ou qui a scanné peu de personnes et aidez-le !", icon: "🤲" },
+      { title: "📸 Selfie mobilité", task: "Prenez un selfie créatif sur le thème du transport (devant un vélo, un panneau, dans une voiture...)", icon: "🤳", hasPhoto: true }
 ];
 
-// --- QUESTIONS CO-CONSTRUCTION ---
+// --- QUESTIONS OPTIMISÉES (NUDGE / SCIENCE COMPORTEMENTALE) ---
+
 const QUESTIONS_CLOSE = [
-    { q: "Qui a déjà testé le vélo ou la marche pour venir, même une seule fois ?", sub: "Levez la main ! La pratique existe peut-être déjà autour de vous." },
-    { q: "Quel est votre VRAI frein : transpiration, météo, sécurité, ou autre chose ?", sub: "Soyons honnêtes sur ce qui bloque vraiment." },
-    { q: "Sur 5 km, qui pense que le vélo bat la voiture aux heures de pointe ?", sub: "En ville, le vélo met 15-20 min constants. Et vous en voiture ?" },
-    { q: "Entre arriver légèrement essoufflé ou économiser 150€/mois, que choisissez-vous ?", sub: "Le calcul économique est souvent sous-estimé." },
-    { q: "Qui connaît un collègue qui vient déjà en mobilité douce ?", sub: "Un binôme ou un mentor peut tout changer." },
-    { q: "Si des douches et vestiaires étaient disponibles, ça changerait quoi pour vous ?", sub: "L'infrastructure est-elle le vrai blocage ?" },
-    { q: "Défi : qui est prêt à tester UN trajet alternatif cette semaine ?", sub: "Pas d'engagement long terme, juste un essai." }
+    // VÉLO & MICRO-MOBILITÉ
+    { q: "Levez la main si vous avez déjà fait le trajet en vélo, même une seule fois.", sub: "Preuve sociale : la pratique existe déjà autour de vous." },
+    { q: "Qui a déjà vu un collègue arriver en trottinette ou vélo pliant ?", sub: "La micro-mobilité est visible." },
+    { q: "Votre vrai frein au vélo, c'est quoi : transpiration, douches, ou météo ?", sub: "Identifions le blocage opérationnel." },
+    { q: "Entre arriver en sueur ou économiser 30€/mois, vous choisissez quoi honnêtement ?", sub: "Le dilemme confort vs économie." },
+    { q: "Top chrono : qui parie que le vélo bat la voiture en heure de pointe ?", sub: "Sur 5km en ville, le vélo est souvent plus rapide." },
+    { q: "À deux, on se challenge : qui fait domicile-bureau en vélo cette semaine ?", sub: "Engagement immédiat en binôme." },
+    { q: "Qui accepterait de prêter son vélo à un collègue pour un trajet test ?", sub: "Solidarité et essai sans risque." },
+    
+    // TRANSPORTS EN COMMUN (TC)
+    { q: "Qui a déjà pris le bus/tram au moins une fois depuis qu'il travaille ici ?", sub: "Test de la connaissance de l'offre." },
+    { q: "Votre vrai frein aux TC : temps de trajet, fréquence, ou confort ?", sub: "Analyse des barrières perçues." },
+    { q: "Si le bus passait 10 min plus tôt/tard, ça changerait tout pour vous ?", sub: "La flexibilité horaire est-elle une clé ?" },
+    { q: "Qui accepterait de tester les TC 2 jours cette semaine si quelqu'un vient avec vous ?", sub: "L'accompagnement pour lever les freins." }
 ];
 
 const QUESTIONS_FAR = [
-    { q: "Qui part entre 7h et 8h le matin ? Levez la main !", sub: "Regardez autour de vous : ce sont vos covoitureurs potentiels." },
-    { q: "Combien de places vides dans vos voitures ce matin ? Comptez ensemble.", sub: "Chaque place vide = de l'argent qui s'envole." },
-    { q: "Votre vrai frein au covoiturage : les horaires, le détour, ou la gêne de demander ?", sub: "Identifions le vrai blocage." },
-    { q: "Qui serait OK pour tester UN trajet en covoiturage cette semaine ?", sub: "Un essai sans engagement, juste pour voir." },
-    { q: "Qui habite à moins de 15 min d'une gare ou d'un arrêt de bus/tram ?", sub: "Le combo TC + vélo pliant est souvent sous-estimé." },
-    { q: "Si vous pouviez télétravailler 1 jour de plus par semaine, qu'en feriez-vous ?", sub: "Temps gagné : sport, famille, sommeil ?" },
-    { q: "Qui connaît déjà quelqu'un dans cette salle qui habite près de chez lui ?", sub: "Le covoiturage commence par une conversation." }
+    // COVOITURAGE
+    { q: "Levez la main si vous partez entre 7h15 et 7h45.", sub: "Vos covoitureurs potentiels sont ici." },
+    { q: "Combien de places vides dans vos voitures ce matin ? On compte ensemble.", sub: "Visualisation du gaspillage." },
+    { q: "Votre vrai frein au covoiturage : horaires, détour, ou ne pas connaître les gens ?", sub: "Psychologie vs Logistique." },
+    { q: "On fait comment sur les horaires si l'un arrive en retard ?", sub: "Règles de vie commune." },
+    { q: "Qui serait prêt à faire UN SEUL trajet test en covoiturage cette semaine ?", sub: "Petit pas sans engagement." },
+    
+    // VOITURE ÉLECTRIQUE & AUTOPARTAGE
+    { q: "Qui a déjà été dans une voiture électrique, même comme passager ?", sub: "Démystification par l'expérience." },
+    { q: "Votre vrai frein à l'électrique : prix, autonomie, ou recharge ?", sub: "Identifier les peurs technologiques." },
+    { q: "Vous avez besoin de votre voiture combien de jours par semaine honnêtement ?", sub: "Remise en question de la possession." },
+    
+    // TRAIN & INTERMODALITÉ
+    { q: "Qui habite à moins de 15 minutes d'une gare ?", sub: "Le train est souvent oublié." },
+    { q: "Une trottinette/vélo pliant qui tient dans le train, ça règle votre problème de dernier km ?", sub: "Solution multimodale." },
+    
+    // TÉLÉTRAVAIL
+    { q: "Levez la main si vous habitez à +30 km : le télétravail changerait tout.", sub: "Impact majeur sur la qualité de vie." },
+    { q: "Qui pourrait proposer à son manager de tester 1 jour de TT en plus ce mois-ci ?", sub: "Action concrète RH." }
 ];
 
 // ================= UTILITAIRES =================
@@ -442,11 +462,11 @@ function genMyQRCode(elId) {
     // Vider l'élément
     el.innerHTML = '';
     
-    // Créer les données du QR code (format compact)
-   const qrData = JSON.stringify({ 
-        id: myUniqueId.substring(0, 12), 
-        lat: Math.round(myCoords.lat * 1000) / 1000,
-        lon: Math.round(myCoords.lon * 1000) / 1000
+    // Créer les données du QR code (format compact et sécurisé)
+    const qrData = JSON.stringify({ 
+        id: myUniqueId, // Utiliser l'ID complet pour l'unicité
+        lat: Number(myCoords.lat.toFixed(4)), // Réduire la précision pour la taille
+        lon: Number(myCoords.lon.toFixed(4))
     });
     
     console.log('[QR] Données QR:', qrData);
@@ -458,7 +478,7 @@ function genMyQRCode(elId) {
             height: 180,
             colorDark: "#0f172a", 
             colorLight: "#ffffff",
-            correctLevel: QRCode.CorrectLevel.L
+            correctLevel: QRCode.CorrectLevel.L // Niveau L important pour réduire la complexité
         });
         console.log('[QR] QR code généré avec succès');
     } catch(e) {
@@ -904,7 +924,7 @@ function showCompanyScan() {
     startScanLoop('company');
 }
 
-// ================= ADMIN =================
+// ================= ADMIN & RAPPORT =================
 function showAdminPage() {
     showStep('adminPage');
     $('adminPage').classList.add('active');
@@ -933,15 +953,18 @@ async function generateCompanyQR() {
 
         if (!data.length) throw new Error("Adresse introuvable");
 
+        const lat = parseFloat(data[0].lat);
+        const lon = parseFloat(data[0].lon);
+
         $('companyQrcode').innerHTML = '';
         new QRCode($('companyQrcode'), {
-            text: JSON.stringify({ type: 'company', lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) }),
+            text: JSON.stringify({ type: 'company', lat: lat, lon: lon }),
             width: 200, height: 200
         });
         $('companyQRSection').style.display = 'flex';
 
     } catch (e) {
-        showError("Erreur: " + e.message);
+        showError("Erreur adresse");
         $('companyQrcode').innerHTML = '';
     }
 }
