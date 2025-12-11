@@ -30,15 +30,14 @@ const CONSTRAINTS = ["Horaires décalés", "Enfants", "Matériel", "Distance >30
 const LEVERS = ["Prime mobilité", "Abonnement TC 75%", "Parking vélo", "Douches", "Recharge élec", "Covoiturage interne", "Vélos fonction", "Formation", "Autre (précisez)"];
 
 const miniChallenges = [
-      { title: "🤝 Connecteurs", task: "Présentez-vous mutuellement à une 3ème personne que vous scannerez ensemble", icon: "🎭" },
-      { title: "🔤 Chasseurs d'initiales", task: "Scannez 2 personnes dont les prénoms commencent par la même lettre", icon: "🎲" },
-      { title: "🕵️ Devine mon adresse", task: "Scannez quelqu'un et tentez de deviner l'adresse qu'il a renseignée (rue, quartier...)", icon: "🏘️" },
-      { title: "🆘 Entraide", task: "Trouvez quelqu'un qui semble perdu ou qui a scanné peu de personnes et aidez-le !", icon: "🤲" },
-      { title: "📸 Selfie mobilité", task: "Prenez un selfie créatif sur le thème du transport (devant un vélo, un panneau, dans une voiture...)", icon: "🤳", hasPhoto: true }
+    { title: "🤝 Connecteurs", task: "Présentez-vous mutuellement à une 3ème personne que vous scannerez ensemble", icon: "🎭" },
+    { title: "🔤 Chasseurs d'initiales", task: "Scannez 2 personnes dont les prénoms commencent par la même lettre", icon: "🎲" },
+    { title: "🕵️ Devine mon adresse", task: "Scannez quelqu'un et tentez de deviner l'adresse qu'il a renseignée (rue, quartier...)", icon: "🏘️" },
+    { title: "🆘 Entraide", task: "Trouvez quelqu'un qui semble perdu ou qui a scanné peu de personnes et aidez-le !", icon: "🤲" },
+    { title: "📸 Selfie mobilité", task: "Prenez un selfie créatif sur le thème du transport (devant un vélo, un panneau, dans une voiture...)", icon: "🤳", hasPhoto: true }
 ];
 
-// --- QUESTIONS OPTIMISÉES (NUDGE / SCIENCE COMPORTEMENTALE) ---
-// Questions pour les participants habitant PROCHE du lieu de travail (< 5km)
+// --- QUESTIONS CO-CONSTRUCTION ---
 const QUESTIONS_CLOSE = [
     { q: "Qui a déjà testé le vélo ou la marche pour venir, même une seule fois ?", sub: "Levez la main ! La pratique existe peut-être déjà autour de vous." },
     { q: "Quel est votre VRAI frein : transpiration, météo, sécurité, ou autre chose ?", sub: "Soyons honnêtes sur ce qui bloque vraiment." },
@@ -49,7 +48,6 @@ const QUESTIONS_CLOSE = [
     { q: "Défi : qui est prêt à tester UN trajet alternatif cette semaine ?", sub: "Pas d'engagement long terme, juste un essai." }
 ];
 
-// Questions pour les participants habitant LOIN du lieu de travail (> 5km)
 const QUESTIONS_FAR = [
     { q: "Qui part entre 7h et 8h le matin ? Levez la main !", sub: "Regardez autour de vous : ce sont vos covoitureurs potentiels." },
     { q: "Combien de places vides dans vos voitures ce matin ? Comptez ensemble.", sub: "Chaque place vide = de l'argent qui s'envole." },
@@ -65,8 +63,9 @@ function $(id) { return document.getElementById(id); }
 function generateUniqueId() { return 'u_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now().toString(36); }
 function generateEmojiPseudo() { return EMOJI_SET[Math.floor(Math.random() * EMOJI_SET.length)] + EMOJI_SET[Math.floor(Math.random() * EMOJI_SET.length)] + EMOJI_SET[Math.floor(Math.random() * EMOJI_SET.length)]; }
 
-// TOASTS LISIBLES
+// TOASTS
 function showError(msg) {
+    console.error('[ERROR]', msg);
     const errDiv = document.querySelector('.step.active .error-msg');
     if (errDiv && errDiv.offsetParent !== null) {
         errDiv.textContent = msg;
@@ -81,6 +80,7 @@ function showError(msg) {
 }
 
 function showSuccess(msg) {
+    console.log('[SUCCESS]', msg);
     const div = document.createElement('div');
     div.className = 'toast-msg success';
     div.innerHTML = `<span>✅</span> <span>${msg}</span>`;
@@ -90,6 +90,8 @@ function showSuccess(msg) {
 
 // ================= INIT & NAVIGATION =================
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('[INIT] DOMContentLoaded');
+    
     if (new Date() > new Date(APP_CONFIG.EXPIRATION_DATE)) {
         document.body.innerHTML = "<h1 style='color:white;text-align:center;margin-top:50px;'>Session Expirée</h1>";
         return;
@@ -101,16 +103,22 @@ document.addEventListener('DOMContentLoaded', () => {
         scanCtx = scanCanvas.getContext('2d', { willReadFrequently: true });
     }
 
-    // Restaurer les données utilisateur AVANT tout
+    // Restaurer les données utilisateur
     restoreUserData();
     checkRGPDStatus();
     
     if ($('multimodalCheck')) $('multimodalCheck').checked = false;
     
-    // Debug: afficher l'état des données
-    console.log('[INIT] myUniqueId:', myUniqueId);
-    console.log('[INIT] myCoords:', myCoords);
-    console.log('[INIT] myEmoji:', myEmoji);
+    // IMPORTANT: Attacher le gestionnaire d'événement ICI
+    const saveBtn = $('saveLocation');
+    if (saveBtn) {
+        console.log('[INIT] Attachement du bouton saveLocation');
+        saveBtn.addEventListener('click', handleSaveLocation);
+    } else {
+        console.error('[INIT] Bouton saveLocation non trouvé !');
+    }
+    
+    console.log('[INIT] État initial:', { myUniqueId, myCoords, myEmoji });
 });
 
 function checkRGPDStatus() {
@@ -143,9 +151,9 @@ function showRGPDDetails() {
                 <li>🆔 Un identifiant anonyme généré automatiquement</li>
             </ul>
             <h3 style="margin-top:20px; color:#e2e8f0;">Pourquoi ?</h3>
-            <p style="opacity:0.9; margin-top:5px;">Ces données permettent de réaliser l'atelier de manière interactive et de visualiser collectivement les trajets domicile-travail.</p>
+            <p style="opacity:0.9; margin-top:5px;">Ces données permettent de réaliser l'atelier de manière interactive.</p>
             <h3 style="margin-top:20px; color:#e2e8f0;">Durée & Tiers</h3>
-            <p style="opacity:0.9; margin-top:5px;">Stockage local sur votre appareil + Google Sheet de l'animateur. Suppression sous <strong>7 jours</strong>.</p>
+            <p style="opacity:0.9; margin-top:5px;">Stockage local + Google Sheet de l'animateur. Suppression sous <strong>7 jours</strong>.</p>
             <h3 style="margin-top:15px;">Vos droits</h3>
             <ul style="margin-left:20px; opacity:0.9;">
                 <li>Droit d'accès et de suppression.</li>
@@ -159,6 +167,8 @@ function showRGPDDetails() {
 }
 
 function showStep(n) {
+    console.log('[NAV] showStep:', n);
+    
     if (typeof n === 'string') {
         document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
         const target = $(n);
@@ -166,10 +176,13 @@ function showStep(n) {
         stopAllCameras();
         return;
     }
+    
     document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
-    document.querySelectorAll('.step-dot').forEach(d => d.classList.remove('active'));
+    document.querySelectorAll('.step-dot').forEach(d => d.classList.remove('active', 'completed'));
+    
     const target = $(`step${n}`);
     if (target) target.classList.add('active');
+    
     for (let i = 1; i <= n; i++) {
         const dot = $(`step${i}Dot`);
         if (dot) {
@@ -177,36 +190,25 @@ function showStep(n) {
             if (i < n) dot.classList.add('completed');
         }
     }
+    
     stopAllCameras();
     
-    // Génération des QR codes avec vérification des données
+    // Génération des QR codes
     if (n === 2) {
-        setTimeout(() => {
-            if (myUniqueId && myCoords) {
-                genMyQRCode('qrcode');
-            } else {
-                console.warn('[QR] Données manquantes pour step 2');
-                showError("Profil incomplet. Retournez à l'étape 1.");
-            }
-        }, 200);
+        console.log('[NAV] Step 2 - Génération QR code');
+        console.log('[NAV] Données:', { myUniqueId, myCoords });
+        setTimeout(() => genMyQRCode('qrcode'), 300);
     }
     if (n === 3) { 
         initGame(); 
-        setTimeout(() => {
-            if (myUniqueId && myCoords) {
-                genMyQRCode('qrcodeStep3');
-            }
-        }, 200);
+        setTimeout(() => genMyQRCode('qrcodeStep3'), 300);
     }
     if (n === 4) {
-        setTimeout(() => {
-            if (myUniqueId && myCoords) {
-                genMyQRCode('qrcodeStep4');
-            }
-        }, 200);
+        setTimeout(() => genMyQRCode('qrcodeStep4'), 300);
     }
     if (n === 5) updateStep5Stats();
     if (n === 6) initStep6Form();
+    
     window.scrollTo(0, 0);
 }
 
@@ -223,7 +225,7 @@ function checkAccessCode() {
 
 // ================= RESET =================
 function resetGameSequence() {
-    if (confirm("⚠️ ATTENTION : Voulez-vous vraiment recommencer à zéro ?\n\nCela effacera votre profil et vos scans.")) {
+    if (confirm("⚠️ Voulez-vous vraiment recommencer à zéro ?")) {
         localStorage.clear();
         location.reload(true);
     }
@@ -256,6 +258,7 @@ function showInvitePage() {
     new QRCode($('inviteQrcode'), { text: window.location.href, width: 200, height: 200, colorDark: "#0f172a", colorLight: "#ffffff" });
     startInviteTimer();
 }
+
 function startInviteTimer() {
     let countdown = 30;
     const timerDisplay = $('inviteTimer');
@@ -267,36 +270,50 @@ function startInviteTimer() {
         if (countdown <= 0) { clearInterval(inviteCountdownInterval); showStep(2); }
     }, 1000);
 }
-function extendInviteTimer() { startInviteTimer(); }
 
 // ================= GEOLOC & PROFIL =================
-$('saveLocation').onclick = async () => {
+async function handleSaveLocation() {
+    console.log('[SAVE] Début sauvegarde');
+    
     const addr = $('userAddress').value;
     const mode = $('transportMode').value;
-    if (!addr || !mode) return showError("Remplissez tous les champs");
+    
+    if (!addr || !mode) {
+        return showError("Remplissez tous les champs");
+    }
+
+    const btn = $('saveLocation');
+    btn.textContent = "Recherche..."; 
+    btn.disabled = true;
 
     try {
-        $('saveLocation').textContent = "Recherche..."; 
-        $('saveLocation').disabled = true;
-
         const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addr)}&addressdetails=1`);
         const data = await res.json();
-        if (!data.length) throw new Error("Adresse introuvable");
+        
+        if (!data.length) {
+            throw new Error("Adresse introuvable");
+        }
 
-        myCoords = { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
+        // Stocker les coordonnées
+        myCoords = { 
+            lat: parseFloat(data[0].lat), 
+            lon: parseFloat(data[0].lon) 
+        };
         myFullAddress = data[0].display_name;
         myTransportMode = mode;
         myDepartureTime = $('departureTime').value;
 
-        // Générer l'ID et l'emoji AVANT de sauvegarder
+        // Générer l'ID et l'emoji si pas encore fait
         if (!myUniqueId) { 
             myUniqueId = generateUniqueId(); 
+            console.log('[SAVE] Nouvel ID généré:', myUniqueId);
         }
         if (!myEmoji) { 
             myEmoji = generateEmojiPseudo(); 
+            console.log('[SAVE] Nouvel emoji généré:', myEmoji);
         }
 
-        // Sauvegarder TOUT en localStorage
+        // Sauvegarder en localStorage
         localStorage.setItem('userCoords', JSON.stringify(myCoords));
         localStorage.setItem('transportMode', myTransportMode);
         localStorage.setItem('departureTime', myDepartureTime);
@@ -304,46 +321,70 @@ $('saveLocation').onclick = async () => {
         localStorage.setItem('myUniqueId', myUniqueId);
         localStorage.setItem('myEmoji', myEmoji);
 
-        // Debug
-        console.log('[SAVE] Données sauvegardées:', { myUniqueId, myEmoji, myCoords });
+        console.log('[SAVE] Données sauvegardées:', { 
+            myUniqueId, 
+            myEmoji, 
+            myCoords,
+            localStorage: {
+                myUniqueId: localStorage.getItem('myUniqueId'),
+                userCoords: localStorage.getItem('userCoords')
+            }
+        });
 
+        // Afficher la section suivante
         $('locationSection').style.display = 'none';
         $('afterLocationSection').style.display = 'block';
         $('myEmojiDisplay').textContent = myEmoji;
 
         const addrDisplay = $('detectedAddress');
-        if (addrDisplay) addrDisplay.textContent = myFullAddress.split(',').slice(0, 2).join(',');
-
-        // Envoi Google Sheets
-        const payload = {
-            type: 'participant', id: myUniqueId, emoji: myEmoji, lat: myCoords.lat, lon: myCoords.lon,
-            address: myFullAddress, transport: myTransportMode, transportMode2: myTransportMode2,
-            mode1Days: mode1Days, mode2Days: mode2Days, departureTime: myDepartureTime
-        };
-        if (googleScriptUrl) {
-            fetch(googleScriptUrl, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) })
-                .catch(e => console.warn('Envoi Google Sheets échoué:', e));
+        if (addrDisplay) {
+            addrDisplay.textContent = myFullAddress.split(',').slice(0, 2).join(',');
         }
 
-        $('saveLocation').textContent = "Valider ma localisation"; 
-        $('saveLocation').disabled = false;
+        // Envoi Google Sheets (optionnel)
+        if (googleScriptUrl) {
+            const payload = {
+                type: 'participant', 
+                id: myUniqueId, 
+                emoji: myEmoji, 
+                lat: myCoords.lat, 
+                lon: myCoords.lon,
+                address: myFullAddress, 
+                transport: myTransportMode, 
+                transportMode2: myTransportMode2,
+                mode1Days: mode1Days, 
+                mode2Days: mode2Days, 
+                departureTime: myDepartureTime
+            };
+            fetch(googleScriptUrl, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) })
+                .catch(e => console.warn('[SAVE] Envoi Google Sheets échoué:', e));
+        }
+
+        showSuccess("Profil enregistré !");
 
     } catch (e) {
+        console.error('[SAVE] Erreur:', e);
         showError(e.message);
-        $('saveLocation').textContent = "Valider ma localisation"; 
-        $('saveLocation').disabled = false;
+    } finally {
+        btn.textContent = "Valider ma localisation"; 
+        btn.disabled = false;
     }
-};
+}
 
 function restoreUserData() {
+    console.log('[RESTORE] Début restauration');
+    
     myUniqueId = localStorage.getItem('myUniqueId') || '';
     myEmoji = localStorage.getItem('myEmoji') || '';
+    myFullAddress = localStorage.getItem('fullAddress') || '';
+    myDepartureTime = localStorage.getItem('departureTime') || '07:30';
     
-    const coords = localStorage.getItem('userCoords');
-    if (coords) {
+    const coordsStr = localStorage.getItem('userCoords');
+    if (coordsStr) {
         try {
-            myCoords = JSON.parse(coords);
+            myCoords = JSON.parse(coordsStr);
         } catch(e) {
+            console.error('[RESTORE] Erreur parsing coords:', e);
             myCoords = null;
         }
     }
@@ -352,51 +393,64 @@ function restoreUserData() {
     myTransportMode2 = localStorage.getItem('transportMode2') || '';
     mode1Days = parseInt(localStorage.getItem('mode1Days') || '0');
     mode2Days = parseInt(localStorage.getItem('mode2Days') || '0');
-    myFullAddress = localStorage.getItem('fullAddress') || '';
-    myDepartureTime = localStorage.getItem('departureTime') || '07:30';
     
-    const saved = localStorage.getItem('participants');
-    if (saved) { 
+    const savedParticipants = localStorage.getItem('participants');
+    if (savedParticipants) { 
         try {
-            participants = JSON.parse(saved); 
+            participants = JSON.parse(savedParticipants); 
             scanCount = participants.length; 
         } catch(e) {
+            console.error('[RESTORE] Erreur parsing participants:', e);
             participants = [];
             scanCount = 0;
         }
-    } else { 
-        scanCount = 0; 
     }
     
-    console.log('[RESTORE] Données restaurées:', { myUniqueId, myEmoji, myCoords, scanCount });
+    console.log('[RESTORE] Données restaurées:', { 
+        myUniqueId, 
+        myEmoji, 
+        myCoords, 
+        scanCount 
+    });
 }
 
 // ================= CAMERA & QR =================
 function genMyQRCode(elId) {
+    console.log('[QR] Génération pour:', elId);
+    
     const el = $(elId);
     if (!el) {
         console.error('[QR] Element non trouvé:', elId);
         return;
     }
     
-    // Vérification des données obligatoires
-    if (!myUniqueId || !myCoords) {
-        console.error('[QR] Données manquantes - myUniqueId:', myUniqueId, 'myCoords:', myCoords);
-        el.innerHTML = '<p style="color:#ef4444; text-align:center; padding:20px;">⚠️ Profil incomplet</p>';
+    // Vérification des données
+    console.log('[QR] Données disponibles:', { myUniqueId, myCoords, myEmoji });
+    
+    if (!myUniqueId) {
+        console.error('[QR] myUniqueId manquant');
+        el.innerHTML = '<p style="color:#ef4444; text-align:center; padding:20px;">⚠️ ID manquant<br><small>Retournez à l\'étape 1</small></p>';
         return;
     }
     
+    if (!myCoords || !myCoords.lat || !myCoords.lon) {
+        console.error('[QR] myCoords manquant ou invalide:', myCoords);
+        el.innerHTML = '<p style="color:#ef4444; text-align:center; padding:20px;">⚠️ Position manquante<br><small>Retournez à l\'étape 1</small></p>';
+        return;
+    }
+    
+    // Vider l'élément
     el.innerHTML = '';
     
-    // Format compact pour QR code plus lisible
+    // Créer les données du QR code (format compact)
     const qrData = JSON.stringify({ 
         id: myUniqueId, 
-        lat: Math.round(myCoords.lat * 10000) / 10000,  // 4 décimales suffisent
+        lat: Math.round(myCoords.lat * 10000) / 10000,
         lon: Math.round(myCoords.lon * 10000) / 10000,
-        e: myEmoji  // emoji court
+        e: myEmoji
     });
     
-    console.log('[QR] Génération QR code:', qrData);
+    console.log('[QR] Données QR:', qrData);
 
     try {
         new QRCode(el, {
@@ -407,14 +461,15 @@ function genMyQRCode(elId) {
             colorLight: "#ffffff",
             correctLevel: QRCode.CorrectLevel.L
         });
-        console.log('[QR] QR code généré avec succès pour:', elId);
+        console.log('[QR] QR code généré avec succès');
     } catch(e) {
         console.error('[QR] Erreur génération:', e);
-        el.innerHTML = '<p style="color:#ef4444;">Erreur QR</p>';
+        el.innerHTML = '<p style="color:#ef4444; text-align:center;">Erreur QR: ' + e.message + '</p>';
     }
 }
 
 function startScanLoop(type) {
+    console.log('[SCAN] Démarrage pour:', type);
     scanning = true;
 
     let camViewId, videoId, btnId, stopBtnId;
@@ -422,7 +477,7 @@ function startScanLoop(type) {
     if (type === 'group') {
         camViewId = 'groupCameraView';
         videoId = 'groupVideo';
-        $('groupScanInterface').style.display = 'block';
+        if ($('groupScanInterface')) $('groupScanInterface').style.display = 'block';
     } else {
         camViewId = type === 'game' ? 'gameCameraView' : (type === 'company' ? 'companyCameraView' : (type === 'positioning' ? 'positioningCameraView' : 'cameraView'));
         videoId = type === 'game' ? 'gameVideo' : (type === 'company' ? 'companyVideo' : (type === 'positioning' ? 'positioningVideo' : 'video'));
@@ -436,7 +491,7 @@ function startScanLoop(type) {
 
     const video = $(videoId);
     if (!video) {
-        console.error("[SCAN] Vidéo introuvable pour le type:", type);
+        console.error("[SCAN] Video non trouvée:", videoId);
         return;
     }
 
@@ -445,11 +500,11 @@ function startScanLoop(type) {
             video.srcObject = stream;
             video.setAttribute("playsinline", true);
             video.play();
-            console.log('[SCAN] Caméra démarrée pour:', type);
+            console.log('[SCAN] Caméra démarrée');
             requestAnimationFrame(() => tick(video, type));
         })
         .catch(err => { 
-            console.error("[SCAN] Erreur accès caméra:", err);
+            console.error("[SCAN] Erreur caméra:", err);
             showError("Erreur caméra: " + err.message); 
             stopAllCameras(); 
         });
@@ -472,35 +527,30 @@ function tick(video, type) {
 
         scanCanvas.width = video.videoWidth;
         scanCanvas.height = video.videoHeight;
-        
         scanCtx.drawImage(video, 0, 0, scanCanvas.width, scanCanvas.height);
         
         const imageData = scanCtx.getImageData(0, 0, scanCanvas.width, scanCanvas.height);
-        
         const code = jsQR(imageData.data, imageData.width, imageData.height, {
             inversionAttempts: "dontInvert",
         });
 
         if (code) {
-            console.log("[SCAN] QR Code détecté:", code.data);
+            console.log("[SCAN] QR détecté:", code.data);
             try {
                 const data = JSON.parse(code.data);
                 let success = false;
 
-                // Normaliser les données (compatibilité avec ancien format)
+                // Compatibilité ancien/nouveau format
                 if (data.e && !data.emoji) data.emoji = data.e;
 
                 if (type === 'group') {
-                    if (data.id) {
-                        addMemberToGroup(data);
-                    }
+                    if (data.id) addMemberToGroup(data);
                 }
                 else if (type === 'company' && data.type === 'company') {
                     handleCompanyScan(data);
                     success = true;
                 }
                 else if (data.id && data.lat !== undefined) {
-                    console.log('[SCAN] Participant détecté:', data.id);
                     if (type === 'game') success = handleGameScan(data);
                     else if (type === 'positioning') success = handlePositioningScan(data);
                     else success = addParticipant(data);
@@ -509,8 +559,7 @@ function tick(video, type) {
                 if (success) stopAllCameras();
 
             } catch (e) { 
-                // QR code non JSON - ignorer silencieusement
-                console.log('[SCAN] QR non-JSON ignoré');
+                // QR non-JSON, ignorer
             }
         }
     }
@@ -518,6 +567,7 @@ function tick(video, type) {
 }
 
 function stopAllCameras() {
+    console.log('[SCAN] Arrêt caméras');
     scanning = false;
     document.querySelectorAll('video').forEach(v => {
         if (v.srcObject) v.srcObject.getTracks().forEach(t => t.stop());
@@ -565,8 +615,12 @@ function addMemberToGroup(data) {
 
 function updateGroupList() {
     const list = $('groupMembersList');
-    list.innerHTML = currentGroup.map(m => `<div>✅ ${m.emoji || m.e || '👤'} (ajouté)</div>`).join('');
-    $('validateGroupBtn').disabled = currentGroup.length < 1;
+    if (list) {
+        list.innerHTML = currentGroup.map(m => `<div>✅ ${m.emoji || m.e || '👤'}</div>`).join('');
+    }
+    if ($('validateGroupBtn')) {
+        $('validateGroupBtn').disabled = currentGroup.length < 1;
+    }
 }
 
 function validateGroup() {
@@ -582,13 +636,12 @@ function validateGroup() {
     $('groupDiscussionSection').style.display = 'block';
 }
 
-// Phase 2 : Discussion Dynamique
 function startDiscussion(type) {
     currentQuestions = type === 'close' ? QUESTIONS_CLOSE : QUESTIONS_FAR;
     questionIndex = 0;
     
     document.querySelectorAll('.coach-btn').forEach(b => b.classList.remove('selected'));
-    event.target.classList.add('selected');
+    if (event && event.target) event.target.classList.add('selected');
     
     $('dynamicQuestionCard').style.display = 'block';
     showNextQuestion();
@@ -597,8 +650,9 @@ function startDiscussion(type) {
 function showNextQuestion() {
     if(questionIndex >= currentQuestions.length) {
         $('questionText').textContent = "👏 Tour de table terminé !";
-        $('questionSubtext').textContent = "Prenez maintenant une note commune ci-dessous.";
-        $('dynamicQuestionCard').querySelector('button').style.display = 'none';
+        $('questionSubtext').textContent = "Prenez une note commune ci-dessous.";
+        const btn = $('dynamicQuestionCard').querySelector('button');
+        if (btn) btn.style.display = 'none';
         return;
     }
     
@@ -655,7 +709,8 @@ function addParticipant(data) {
         $('goToStep3').disabled = false;
     }
 
-    if (dist < 5) {
+    // Mini-challenge si proche
+    if (dist < 5 && $('challengeSection')) {
         const chal = miniChallenges[Math.floor(Math.random() * miniChallenges.length)];
         $('challengeTitle').textContent = chal.title;
         $('challengeTask').textContent = chal.task;
@@ -683,10 +738,7 @@ function handlePositioningScan(data) {
 }
 
 function initGame() {
-    if (participants.length < 1) {
-        console.log('[GAME] Pas assez de participants');
-        return;
-    }
+    if (participants.length < 1) return;
     gameTargets = participants.sort((a, b) => a.distance - b.distance).slice(0, 5);
     scannedTargets = []; 
     score = 0; 
@@ -716,9 +768,9 @@ function handleGameScan(data) {
         showError("Ce n'est pas un voisin proche !"); 
         attemptsLeft--;
         updateGameUI();
-        if (attemptsLeft <= 0) {
+        if (attemptsLeft <= 0 && $('gameResult')) {
             $('gameResult').innerHTML = `<div class="error-msg">😞 Partie terminée</div>`;
-            $('gameScanBtn').style.display = 'none';
+            if ($('gameScanBtn')) $('gameScanBtn').style.display = 'none';
         }
         return false; 
     }
@@ -732,12 +784,12 @@ function handleGameScan(data) {
     showSuccess("Bravo ! Voisin trouvé.");
     updateGameUI();
 
-    if (score >= 3) {
+    if (score >= 3 && $('gameResult')) {
         $('gameResult').innerHTML = `<div class="success-msg">🎉 GAGNÉ !</div>`;
-        $('gameScanBtn').style.display = 'none';
+        if ($('gameScanBtn')) $('gameScanBtn').style.display = 'none';
         sendToGoogleSheets({
             type: 'game_result', participantId: myUniqueId, score: score,
-            attempts: 5 - attemptsLeft, errors: (5 - attemptsLeft) - score, title: 'Gagné'
+            attempts: 5 - attemptsLeft, title: 'Gagné'
         });
     }
     return true;
@@ -750,7 +802,7 @@ function resetGame() {
     if ($('gameResult')) $('gameResult').innerHTML = '';
 }
 
-// ================= FORMULAIRE AVEC HIERARCHIE =================
+// ================= FORMULAIRE =================
 function initStep6Form() {
     const createFields = (listId, items, type) => {
         const list = $(listId);
@@ -789,13 +841,9 @@ function handleOptionChange(checkbox, type, name, index, isOther) {
 
     const capType = type.charAt(0).toUpperCase() + type.slice(1);
     const prioSelect = document.getElementById(`prio${capType}${index}`);
-
-    if (prioSelect) {
-        prioSelect.style.display = checkbox.checked ? 'block' : 'none';
-    }
+    if (prioSelect) prioSelect.style.display = checkbox.checked ? 'block' : 'none';
 
     let targetObj = (type === 'alt') ? selectedAlternatives : (type === 'cons' ? selectedConstraints : selectedLevers);
-
     if (checkbox.checked) {
         targetObj[name] = "1";
     } else {
@@ -815,11 +863,9 @@ function updateCommitmentValue() {
 
 function showCompanyScan() {
     const noteField = $('groupNote');
-    if(noteField) {
-        localStorage.setItem('groupNote', noteField.value);
-    }
+    if(noteField) localStorage.setItem('groupNote', noteField.value);
 
-    const formatData = (obj, listId, typePrefix) => {
+    const formatData = (obj, listId) => {
         return Object.entries(obj).map(([k, v]) => {
             let displayName = k;
             if (k.toLowerCase().includes("autre")) {
@@ -835,9 +881,9 @@ function showCompanyScan() {
         }).join(', ');
     };
 
-    let altStr = formatData(selectedAlternatives, 'alternativesList', 'alt');
-    let consStr = formatData(selectedConstraints, 'constraintsList', 'cons');
-    let levStr = formatData(selectedLevers, 'leversList', 'lev');
+    let altStr = formatData(selectedAlternatives, 'alternativesList');
+    let consStr = formatData(selectedConstraints, 'constraintsList');
+    let levStr = formatData(selectedLevers, 'leversList');
 
     localStorage.setItem('finalAlternatives', altStr);
     localStorage.setItem('finalConstraints', consStr);
@@ -859,12 +905,12 @@ function showCompanyScan() {
     startScanLoop('company');
 }
 
-// ================= ADMIN & RAPPORT =================
+// ================= ADMIN =================
 function showAdminPage() {
     showStep('adminPage');
     $('adminPage').classList.add('active');
-    $('adminPanel').style.display = 'none';
-    $('adminLogin').style.display = 'block';
+    if ($('adminPanel')) $('adminPanel').style.display = 'none';
+    if ($('adminLogin')) $('adminLogin').style.display = 'block';
 }
 
 function adminLogin() {
@@ -888,18 +934,15 @@ async function generateCompanyQR() {
 
         if (!data.length) throw new Error("Adresse introuvable");
 
-        const lat = parseFloat(data[0].lat);
-        const lon = parseFloat(data[0].lon);
-
         $('companyQrcode').innerHTML = '';
         new QRCode($('companyQrcode'), {
-            text: JSON.stringify({ type: 'company', lat: lat, lon: lon }),
+            text: JSON.stringify({ type: 'company', lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) }),
             width: 200, height: 200
         });
         $('companyQRSection').style.display = 'flex';
 
     } catch (e) {
-        showError("Erreur adresse");
+        showError("Erreur: " + e.message);
         $('companyQrcode').innerHTML = '';
     }
 }
@@ -932,20 +975,12 @@ function handleCompanyScan(data) {
 function sendToGoogleSheets(data) {
     if (!googleScriptUrl) return;
     fetch(googleScriptUrl, { method: 'POST', mode: 'no-cors', body: JSON.stringify(data) })
-        .catch(e => console.error("Erreur envoi", e));
-}
-
-function resetAllData() {
-    if (confirm("⚠️ DANGER : Pour tout effacer, tapez 'SUPPRIMER'")) {
-        localStorage.clear();
-        location.reload();
-    }
+        .catch(e => console.error("Erreur envoi:", e));
 }
 
 async function exportExcel() {
     const btn = document.querySelector('#adminPanel .btn-primary');
-    const originalText = btn.innerText;
-    btn.innerText = "Téléchargement...";
+    if (btn) btn.innerText = "Téléchargement...";
 
     try {
         const res = await fetch(googleScriptUrl + '?action=get');
@@ -960,11 +995,11 @@ async function exportExcel() {
     } catch (e) {
         console.warn("Export Google échoué, fallback local");
         const wb = XLSX.utils.book_new();
-        const localParts = participants.map(p => ({ Emoji: p.emoji || p.e, Distance: p.distance, Mode: p.transport }));
-        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(localParts), "Mes Scans Locaux");
-        XLSX.writeFile(wb, "Export_Local_Secours.xlsx");
+        const localParts = participants.map(p => ({ Emoji: p.emoji || p.e, Distance: p.distance }));
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(localParts), "Scans Locaux");
+        XLSX.writeFile(wb, "Export_Local.xlsx");
     }
-    btn.innerText = originalText;
+    if (btn) btn.innerText = "📥 Exporter Excel";
 }
 
 function refreshAdminStats() {
@@ -982,59 +1017,24 @@ function generatePDF() {
     const groupNote = localStorage.getItem('groupNote') || "";
 
     const win = window.open('', '_blank');
-    const content = `
+    win.document.write(`
     <html><head><title>Rapport ${myEmoji}</title>
     <style>
         body{font-family:sans-serif;padding:20px;color:#333;max-width:800px;margin:0 auto;} 
         h1{color:#4F46E5;text-align:center;border-bottom:2px solid #4F46E5;padding-bottom:10px;} 
-        h2{color:#4F46E5;margin-top:20px;font-size:1.2em;border-bottom:1px solid #eee;padding-bottom:5px;}
+        h2{color:#4F46E5;margin-top:20px;font-size:1.2em;}
         .card{border:1px solid #e2e8f0;padding:20px;border-radius:10px;margin-bottom:20px;background:#f8fafc;}
-        .btn{display:block;width:100%;padding:15px;background:#4F46E5;color:white;text-align:center;text-decoration:none;border-radius:8px;margin-top:20px;font-weight:bold;border:none;cursor:pointer;}
+        .btn{display:block;width:100%;padding:15px;background:#4F46E5;color:white;text-align:center;border-radius:8px;margin-top:20px;font-weight:bold;border:none;cursor:pointer;}
         .btn-close{background:#ef4444;margin-top:10px;}
-        ul{margin:0;padding-left:20px;}
-        li{margin-bottom:5px;}
-        .note-box {background:#fffbeb; padding:10px; border-left:4px solid #f59e0b; margin-top:10px;}
-    </style>
-    </head><body>
-    <h1>🌱 Mon Bilan Mobilité - GoDifferent</h1>
-    
-    <div class="card">
-        <h2>👤 Profil</h2>
-        <p><strong>Pseudo :</strong> ${myEmoji}</p>
-        <p><strong>Adresse :</strong> ${myFullAddress}</p>
-        <p><strong>Mode actuel :</strong> ${myTransportMode}</p>
-    </div>
-
-    <div class="card">
-        <h2>🌍 Impact & Réseau</h2>
-        <p><strong>Gain potentiel :</strong> <span style="color:#10b981;font-weight:bold;font-size:1.5em;">${$('co2Savings') ? $('co2Savings').textContent : '0'} kg CO2/an</span></p>
-        <p><strong>Voisins trouvés :</strong> ${participants.slice(0, 5).length}</p>
-    </div>
-
-    <div class="card">
-        <h2>💡 Vos Propositions (Priorisées)</h2>
-        <p><strong>Alternatives :</strong></p>
-        <ul>${alt.split(', ').map(i => `<li>${i}</li>`).join('')}</ul>
-        
-        <p><strong>Contraintes :</strong></p>
-        <ul>${cons.split(', ').map(i => `<li>${i}</li>`).join('')}</ul>
-        
-        <p><strong>Leviers :</strong></p>
-        <ul>${lev.split(', ').map(i => `<li>${i}</li>`).join('')}</ul>
-        
-        <div class="note-box">
-            <strong>📝 Note de Groupe :</strong><br>
-            ${groupNote || '(aucune)'}
-        </div>
-
-        <p style="margin-top:15px;"><strong>Engagement personnel :</strong> ${commitmentLevel}%</p>
-    </div>
-
-    <p style="text-align:center;font-size:0.8em;color:#666;">Généré par l'Atelier Mobilité GoDifferent</p>
-    
-    <button onclick="window.print()" class="btn">🖨️ Imprimer / Sauvegarder en PDF</button>
+        ul{margin:0;padding-left:20px;} li{margin-bottom:5px;}
+        .note-box{background:#fffbeb;padding:10px;border-left:4px solid #f59e0b;margin-top:10px;}
+    </style></head><body>
+    <h1>🌱 Bilan Mobilité - GoDifferent</h1>
+    <div class="card"><h2>👤 Profil</h2><p><strong>Pseudo:</strong> ${myEmoji}</p><p><strong>Adresse:</strong> ${myFullAddress}</p><p><strong>Mode:</strong> ${myTransportMode}</p></div>
+    <div class="card"><h2>🌍 Impact</h2><p><strong>Gain potentiel:</strong> <span style="color:#10b981;font-size:1.5em;">${$('co2Savings') ? $('co2Savings').textContent : '0'} kg CO2/an</span></p></div>
+    <div class="card"><h2>💡 Propositions</h2><p><strong>Alternatives:</strong></p><ul>${alt.split(', ').map(i => `<li>${i}</li>`).join('')}</ul><p><strong>Contraintes:</strong></p><ul>${cons.split(', ').map(i => `<li>${i}</li>`).join('')}</ul><p><strong>Leviers:</strong></p><ul>${lev.split(', ').map(i => `<li>${i}</li>`).join('')}</ul><div class="note-box"><strong>📝 Note:</strong><br>${groupNote || '(aucune)'}</div><p><strong>Engagement:</strong> ${commitmentLevel}%</p></div>
+    <button onclick="window.print()" class="btn">🖨️ Imprimer</button>
     <button onclick="window.close()" class="btn btn-close">❌ Fermer</button>
-    </body></html>`;
-    win.document.write(content);
+    </body></html>`);
     win.document.close();
 }
