@@ -300,10 +300,22 @@ function genMyQRCode(elId) {
     const el = $(elId);
     if (!el) return;
     el.innerHTML = '';
+    
+    // Sécurité : Vérifier les données avant de générer
+    const id = myUniqueId || 'unknown';
+    const lat = myCoords ? myCoords.lat : 0;
+    const lon = myCoords ? myCoords.lon : 0;
+
+    // Utilisation d'un format minimal pour alléger le QR code
+    const qrData = JSON.stringify({ id: id, lat: lat, lon: lon });
+
     new QRCode(el, {
-        text: JSON.stringify({ id: myUniqueId, lat: myCoords.lat, lon: myCoords.lon }),
-        width: 180, height: 180,
-        colorDark: "#0f172a", colorLight: "#ffffff"
+        text: qrData,
+        width: 180, 
+        height: 180,
+        colorDark: "#0f172a", 
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.L // Niveau L pour meilleure lisibilité (moins de densité)
     });
 }
 
@@ -333,31 +345,56 @@ function startScanLoop(type) {
     }
 
     const video = $(videoId);
-    if (!video) return;
+    if (!video) {
+        console.error("Vidéo introuvable pour le type:", type);
+        return;
+    }
 
     navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
         .then(stream => {
             video.srcObject = stream;
-            video.setAttribute("playsinline", true);
+            video.setAttribute("playsinline", true); // Important pour iOS
             video.play();
             requestAnimationFrame(() => tick(video, type));
         })
-        .catch(err => { showError("Erreur caméra: " + err.message); stopAllCameras(); });
+        .catch(err => { 
+            console.error("Erreur accès caméra:", err);
+            showError("Erreur caméra: " + err.message); 
+            stopAllCameras(); 
+        });
 }
 
 function tick(video, type) {
     if (!scanning) return;
+    
     if (video.readyState === video.HAVE_ENOUGH_DATA) {
         if (!scanCanvas) {
             scanCanvas = document.getElementById('canvas');
+            if(!scanCanvas) {
+                 // Création à la volée si manquant dans le HTML
+                 scanCanvas = document.createElement('canvas');
+                 scanCanvas.id = 'canvas';
+                 scanCanvas.style.display = 'none';
+                 document.body.appendChild(scanCanvas);
+            }
             scanCtx = scanCanvas.getContext('2d', { willReadFrequently: true });
         }
+
+        // Toujours redimensionner le canvas à la taille de la vidéo actuelle
         scanCanvas.width = video.videoWidth;
         scanCanvas.height = video.videoHeight;
-        scanCtx.drawImage(video, 0, 0);
-        const code = jsQR(scanCtx.getImageData(0, 0, scanCanvas.width, scanCanvas.height).data, scanCanvas.width, scanCanvas.height);
+        
+        scanCtx.drawImage(video, 0, 0, scanCanvas.width, scanCanvas.height);
+        
+        const imageData = scanCtx.getImageData(0, 0, scanCanvas.width, scanCanvas.height);
+        
+        // Tentative de lecture du QR code
+        const code = jsQR(imageData.data, imageData.width, imageData.height, {
+            inversionAttempts: "dontInvert",
+        });
 
         if (code) {
+            console.log("QR Code détecté:", code.data); // Log pour debug
             try {
                 const data = JSON.parse(code.data);
                 let success = false;
@@ -374,7 +411,9 @@ function tick(video, type) {
                     handleCompanyScan(data);
                     success = true;
                 }
-                else if (data.id && data.lat) {
+                // Cas général : scan de participant (étape 2, jeu, ou positionnement)
+                // On vérifie qu'il y a un ID et une Lat (signature d'un participant)
+                else if (data.id && data.lat !== undefined) {
                     if (type === 'game') success = handleGameScan(data);
                     else if (type === 'positioning') success = handlePositioningScan(data);
                     else success = addParticipant(data);
@@ -382,7 +421,10 @@ function tick(video, type) {
 
                 if (success) stopAllCameras();
 
-            } catch (e) { }
+            } catch (e) { 
+                // Ignorer silencieusement les QR codes qui ne sont pas du JSON valide (autres applis, menus...)
+                // console.warn("QR code invalide (pas du JSON ou format incorrect)", e);
+            }
         }
     }
     if (scanning) requestAnimationFrame(() => tick(video, type));
