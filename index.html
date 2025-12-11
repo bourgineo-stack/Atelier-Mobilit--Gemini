@@ -4,8 +4,12 @@
   <meta charset="UTF-8">
   <title>Atelier Mobilité</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+  <!-- Police -->
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+  <!-- Lien vers le CSS -->
   <link rel="stylesheet" href="style.css">
+  
+  <!-- Bibliothèques externes -->
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -67,6 +71,7 @@
           <div class="input-group"><label>Départ</label><input type="time" id="departureTime" value="07:30" /></div>
           <div style="text-align:center; margin:15px 0;"><label class="checkbox-item"><input type="checkbox" id="multimodalCheck" onchange="toggleMultimodal()"> J'alterne entre plusieurs modes</label></div>
           <button class="btn-primary" id="saveLocation">Valider</button>
+          <div class="error-msg" id="locationError"></div>
         </div>
         <div id="afterLocationSection" style="display: none;">
           <div class="success-msg">✅ Enregistré !</div>
@@ -115,24 +120,29 @@
     <div id="step4" class="step">
       <div class="card glass-effect">
         <h2>🗺️ Position</h2>
-        <div class="info-box">
-            <p>Nous allons tenter de nous placer correctement dans l'espace pour dessiner la carte du domicile-travail.</p>
-            <p style="font-size:0.9em; margin-top:5px;">Scannez les QR codes "Repères" 📍 dans la salle.</p>
+        <div class="info-box" style="text-align:left;">
+            <p><strong>Consigne :</strong> Scannez les QR codes "Repères" (murs/piliers) <strong>ET</strong> les QR codes mobiles (autres participants).</p>
+            <p style="margin-top:5px;">Le but est de quadriller la zone ensemble.</p>
         </div>
         
-        <!-- VISUEL EXPLICATIF -->
+        <!-- VISUEL EXPLICATIF AMÉLIORÉ -->
         <div class="map-schematic">
-            <div class="map-center">🏢</div>
-            <div class="map-point p1">👤</div>
-            <div class="map-point p2">👤</div>
-            <div class="map-point p3">📍</div>
+            <!-- Repères fixes -->
+            <div class="map-point fixed p-fix1">🔳</div>
+            <div class="map-point fixed p-fix2">🔳</div>
+            <div class="map-point fixed p-fix3">🔳</div>
+            <!-- Participants mobiles -->
+            <div class="map-point mobile p-mob1">👤</div>
+            <div class="map-point mobile p-mob2">👤</div>
+            <div class="map-point mobile p-mob3">👤</div>
+            <div class="map-point mobile p-mob4">👤</div>
             <div class="map-radar"></div>
         </div>
 
         <div class="qr-wrapper-small"><div id="qrcodeStep4"></div></div>
         <div class="camera-container" id="positioningCameraView" style="display:none;"><video id="positioningVideo" autoplay playsinline muted></video></div>
         <button class="btn-outline" id="stopPosCamBtn" style="display:none;" onclick="stopAllCameras()">🛑 Arrêter</button>
-        <button class="btn-primary" id="positioningScanBtn" onclick="startScanLoop('positioning')">📱 Scanner repère</button>
+        <button class="btn-primary" id="positioningScanBtn" onclick="startScanLoop('positioning')">📱 Scanner QR code repère ou participant</button>
         
         <div class="navigation-buttons">
             <button class="btn-outline" onclick="showStep(3)">Retour</button>
@@ -144,11 +154,11 @@
     <!-- Étape 5 : Pelotes -->
     <div id="step5" class="step">
       <div class="card glass-effect">
-        <h2>🧶 La Toile d'Araignée</h2>
+        <h2>🧶 Toile d'Araignée</h2>
         <div class="info-box" style="background: rgba(255,255,255,0.1); border-left: 4px solid #F59E0B;">
           <h3>🕸️ Consigne :</h3>
           <p>Avec l'aide de vos voisins, tentez de dessiner votre parcours le plus fidèlement possible.</p>
-          <p>En route pour une belle toile d'araignée !</p>
+          <p><strong>En route pour une belle toile d'araignée géante !</strong></p>
           <hr style="border:0; border-top:1px solid rgba(255,255,255,0.2); margin:10px 0;">
           <ul style="margin-left:20px;"><li>🟡 Voiture</li><li>🔵 Vélo/Marche</li><li>🌸 TC</li></ul>
         </div>
@@ -162,36 +172,62 @@
       </div>
     </div>
 
-    <!-- NOUVELLE ÉTAPE : CO-CONSTRUCTION -->
+    <!-- NOUVELLE ÉTAPE : CO-CONSTRUCTION (Groupes) -->
     <div id="stepCoConstruction" class="step">
         <div class="card glass-effect">
             <h2>💡 Co-Construction</h2>
-            <p class="subtitle">Discutez avec vos voisins pour identifier les solutions.</p>
 
-            <h3 style="text-align:center; margin-bottom:15px;">Quelle est votre réalité ?</h3>
-            <div class="coach-selector">
-                <button class="btn-outline coach-btn" onclick="showMobilityAdvice('close')">🏙️ Proche (< 10km)</button>
-                <button class="btn-outline coach-btn" onclick="showMobilityAdvice('far')">🛣️ Éloigné (> 10km)</button>
+            <!-- SECTION 1 : FORMATION DU GROUPE -->
+            <div id="groupFormationSection">
+                <div class="info-box" style="background: #e0f2fe; color: #0c4a6e; border-left: 4px solid #0ea5e9;">
+                    <h3>👥 Formez votre équipe !</h3>
+                    <p>Mettez-vous en cercle avec vos voisins (3 à 5 personnes).</p>
+                    <p style="margin-top:10px;"><strong>Qui prend le téléphone ?</strong></p>
+                    <div id="leaderChallenge" style="font-weight:bold; font-size:1.1em; text-align:center; padding:10px; border:2px dashed #0284c7; margin-top:5px; border-radius:8px;">
+                        🎲 Tirage au sort...
+                    </div>
+                </div>
+
+                <div id="groupScanInterface" style="display:none; margin-top:15px;">
+                    <p>Le chef scanne les membres du groupe :</p>
+                    <div class="camera-container" id="groupCameraView" style="height:200px;"><video id="groupVideo" autoplay playsinline muted></video></div>
+                    <button class="btn-primary" onclick="startScanLoop('group')">➕ Scanner un membre</button>
+                    <div id="groupMembersList" style="margin:10px 0; text-align:left;"></div>
+                    <button class="btn-secondary" id="validateGroupBtn" onclick="validateGroup()" disabled>✅ Groupe complet</button>
+                </div>
+                
+                <button class="btn-primary" id="startGroupBtn" onclick="initGroupPhase()">🎲 Désigner le chef et scanner</button>
             </div>
 
-            <!-- Contenu Dynamique -->
-            <div id="mobilityAdviceContent" style="display:none; margin-top:20px; padding:15px; background:rgba(255,255,255,0.05); border-radius:10px;">
-                <h3 id="adviceTitle" style="color:var(--primary);"></h3>
-                <div id="adviceText" style="font-size:0.9em; line-height:1.4;"></div>
-                
-                <div style="margin-top:15px; padding:10px; background:rgba(0,0,0,0.2); border-radius:8px;">
-                    <strong>🤔 Questions pour le groupe :</strong>
-                    <ul id="adviceQuestions" style="margin-left:20px; margin-top:5px; font-style:italic;"></ul>
+            <!-- SECTION 2 : DISCUSSION (Cachée au début) -->
+            <div id="groupDiscussionSection" style="display:none;">
+                <h3 style="text-align:center; margin-bottom:15px;">Quelle est votre réalité ?</h3>
+                <div class="coach-selector">
+                    <button class="btn-outline coach-btn" onclick="startDiscussion('close')">🏙️ Proche (< 5km)</button>
+                    <button class="btn-outline coach-btn" onclick="startDiscussion('far')">🛣️ Éloigné (> 5km)</button>
+                </div>
+
+                <!-- Carte Question Dynamique -->
+                <div id="dynamicQuestionCard" style="display:none; margin-top:20px; padding:20px; background:white; color:#333; border-radius:15px; box-shadow:0 10px 25px rgba(0,0,0,0.2); text-align:center;">
+                    <div style="font-size:2em; margin-bottom:10px;">💬</div>
+                    <h3 id="questionText" style="color:var(--primary); margin-bottom:15px;">Question</h3>
+                    <p id="questionSubtext" style="font-size:0.9em; color:#666;"></p>
+                    <button class="btn-primary" onclick="nextQuestion()">Question Suivante ➡️</button>
+                </div>
+
+                <!-- Note Groupe -->
+                <div style="margin-top:30px;">
+                    <label>📝 Une idée clé à retenir ?</label>
+                    <textarea id="groupNote" rows="3" placeholder="Notez ici la meilleure idée du groupe..." style="width:100%; padding:10px; border-radius:10px; background:rgba(0,0,0,0.3); color:white; border:1px solid rgba(255,255,255,0.2); font-family:inherit;"></textarea>
+                </div>
+
+                <div class="navigation-buttons" style="margin-top:20px;">
+                    <button class="btn-primary" onclick="showStep(6)">Mes Propositions ➡️</button>
                 </div>
             </div>
-
-            <!-- Note Groupe -->
-            <h3 style="margin-top:25px;">📝 Idée clé du groupe</h3>
-            <textarea id="groupNote" rows="3" placeholder="Une solution, une idée, ou une remarque issue de votre discussion..." style="width:100%; padding:10px; border-radius:10px; background:rgba(0,0,0,0.3); color:white; border:1px solid rgba(255,255,255,0.2); font-family:inherit;"></textarea>
-
+            
             <div class="navigation-buttons" style="margin-top:20px;">
-                <button class="btn-outline" onclick="showStep(5)">Retour</button>
-                <button class="btn-primary" onclick="showStep(6)">Mes Propositions ➡️</button>
+                <button class="btn-outline" onclick="showStep(5)">Retour Arrière</button>
             </div>
         </div>
     </div>
