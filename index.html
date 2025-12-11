@@ -4,12 +4,8 @@
   <meta charset="UTF-8">
   <title>Atelier Mobilité</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
-  <!-- Police -->
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
-  <!-- Lien vers le CSS -->
   <link rel="stylesheet" href="style.css">
-  
-  <!-- Bibliothèques externes -->
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -71,14 +67,13 @@
           <div class="input-group"><label>Départ</label><input type="time" id="departureTime" value="07:30" /></div>
           <div style="text-align:center; margin:15px 0;"><label class="checkbox-item"><input type="checkbox" id="multimodalCheck" onchange="toggleMultimodal()"> J'alterne entre plusieurs modes</label></div>
           <button class="btn-primary" id="saveLocation">Valider</button>
-          <div class="error-msg" id="locationError"></div>
         </div>
         <div id="afterLocationSection" style="display: none;">
           <div class="success-msg">✅ Enregistré !</div>
           <div class="emoji-display"><div id="myEmojiDisplay" style="font-size: 4rem;"></div></div>
           <div class="info-box"><strong>📍 Adresse :</strong> <span id="detectedAddress"></span></div>
-          <button class="btn-secondary" onclick="showInvitePage()">📨 Inviter</button>
-          <button class="btn-primary" onclick="showStep(2)">Suivant ➡</button>
+          <button class="btn-secondary" onclick="showInvitePage()">📨 Inviter un collègue</button>
+          <button class="btn-primary" onclick="showStep(2)">Lancer le jeu 🎮</button>
         </div>
       </div>
     </div>
@@ -121,40 +116,98 @@
       <div class="card glass-effect">
         <h2>🗺️ Position</h2>
         <div class="info-box">
-            <p>Des QR codes de repère sont disposés dans la salle pour vous aider.</p>
-            <p>Scannez-en un pour valider votre position.</p>
+            <p>Nous allons tenter de nous placer correctement dans l'espace pour dessiner la carte du domicile-travail.</p>
+            <p style="font-size:0.9em; margin-top:5px;">Scannez les QR codes "Repères" 📍 dans la salle.</p>
         </div>
+        
+        <!-- VISUEL EXPLICATIF -->
+        <div class="map-schematic">
+            <div class="map-center">🏢</div>
+            <div class="map-point p1">👤</div>
+            <div class="map-point p2">👤</div>
+            <div class="map-point p3">📍</div>
+            <div class="map-radar"></div>
+        </div>
+
         <div class="qr-wrapper-small"><div id="qrcodeStep4"></div></div>
         <div class="camera-container" id="positioningCameraView" style="display:none;"><video id="positioningVideo" autoplay playsinline muted></video></div>
         <button class="btn-outline" id="stopPosCamBtn" style="display:none;" onclick="stopAllCameras()">🛑 Arrêter</button>
-        <button class="btn-primary" id="positioningScanBtn" onclick="startScanLoop('positioning')">📱 Scanner</button>
-        <div class="navigation-buttons"><button class="btn-outline" onclick="showStep(3)">Retour</button><button class="btn-primary" onclick="showStep(5)">✅ Je suis bien placé</button></div>
+        <button class="btn-primary" id="positioningScanBtn" onclick="startScanLoop('positioning')">📱 Scanner repère</button>
+        
+        <div class="navigation-buttons">
+            <button class="btn-outline" onclick="showStep(3)">Retour</button>
+            <button class="btn-primary" onclick="showStep(5)">✅ Je suis bien placé</button>
+        </div>
       </div>
     </div>
 
     <!-- Étape 5 : Pelotes -->
     <div id="step5" class="step">
       <div class="card glass-effect">
-        <h2>🧶 Pelotes</h2>
-        <div class="info-box"><ul><li>🟡 Voiture</li><li>🔵 Vélo/Marche</li><li>🌸 TC</li></ul></div>
+        <h2>🧶 La Toile d'Araignée</h2>
+        <div class="info-box" style="background: rgba(255,255,255,0.1); border-left: 4px solid #F59E0B;">
+          <h3>🕸️ Consigne :</h3>
+          <p>Avec l'aide de vos voisins, tentez de dessiner votre parcours le plus fidèlement possible.</p>
+          <p>En route pour une belle toile d'araignée !</p>
+          <hr style="border:0; border-top:1px solid rgba(255,255,255,0.2); margin:10px 0;">
+          <ul style="margin-left:20px;"><li>🟡 Voiture</li><li>🔵 Vélo/Marche</li><li>🌸 TC</li></ul>
+        </div>
+        
         <div class="stats-grid"><div class="stat-card"><div class="stat-number" id="totalParticipants">0</div>Joueurs</div><div class="stat-card"><div class="stat-number" id="avgDistance">0</div>Km Moy.</div></div>
-        <div class="navigation-buttons"><button class="btn-outline" onclick="showStep(4)">Retour</button><button class="btn-primary" onclick="showStep(6)">Suivant</button></div>
+        
+        <div class="navigation-buttons">
+            <button class="btn-outline" onclick="showStep(4)">Retour</button>
+            <button class="btn-primary" onclick="showStep('stepCoConstruction')">Phase Discussion ➡️</button>
+        </div>
       </div>
+    </div>
+
+    <!-- NOUVELLE ÉTAPE : CO-CONSTRUCTION -->
+    <div id="stepCoConstruction" class="step">
+        <div class="card glass-effect">
+            <h2>💡 Co-Construction</h2>
+            <p class="subtitle">Discutez avec vos voisins pour identifier les solutions.</p>
+
+            <h3 style="text-align:center; margin-bottom:15px;">Quelle est votre réalité ?</h3>
+            <div class="coach-selector">
+                <button class="btn-outline coach-btn" onclick="showMobilityAdvice('close')">🏙️ Proche (< 10km)</button>
+                <button class="btn-outline coach-btn" onclick="showMobilityAdvice('far')">🛣️ Éloigné (> 10km)</button>
+            </div>
+
+            <!-- Contenu Dynamique -->
+            <div id="mobilityAdviceContent" style="display:none; margin-top:20px; padding:15px; background:rgba(255,255,255,0.05); border-radius:10px;">
+                <h3 id="adviceTitle" style="color:var(--primary);"></h3>
+                <div id="adviceText" style="font-size:0.9em; line-height:1.4;"></div>
+                
+                <div style="margin-top:15px; padding:10px; background:rgba(0,0,0,0.2); border-radius:8px;">
+                    <strong>🤔 Questions pour le groupe :</strong>
+                    <ul id="adviceQuestions" style="margin-left:20px; margin-top:5px; font-style:italic;"></ul>
+                </div>
+            </div>
+
+            <!-- Note Groupe -->
+            <h3 style="margin-top:25px;">📝 Idée clé du groupe</h3>
+            <textarea id="groupNote" rows="3" placeholder="Une solution, une idée, ou une remarque issue de votre discussion..." style="width:100%; padding:10px; border-radius:10px; background:rgba(0,0,0,0.3); color:white; border:1px solid rgba(255,255,255,0.2); font-family:inherit;"></textarea>
+
+            <div class="navigation-buttons" style="margin-top:20px;">
+                <button class="btn-outline" onclick="showStep(5)">Retour</button>
+                <button class="btn-primary" onclick="showStep(6)">Mes Propositions ➡️</button>
+            </div>
+        </div>
     </div>
 
     <!-- Étape 6 : Propositions -->
     <div id="step6" class="step">
       <div class="card glass-effect">
-        <h2>💡 Idées</h2>
+        <h2>📝 Mes Choix</h2>
         <h3>Alternatives</h3><div id="alternativesList"></div>
         <h3 style="margin-top:15px;">Contraintes</h3><div id="constraintsList"></div>
         <h3 style="margin-top:15px;">Leviers</h3><div id="leversList"></div>
         <h3 style="margin-top:15px;">Engagement</h3>
         <div class="range-container"><input type="range" id="commitmentRange" value="80" oninput="updateCommitmentValue()"><div class="range-value"><span id="commitmentValue">80</span>%</div></div>
         
-        <!-- MODIFICATION ICI : Boutons groupés -->
         <div class="navigation-buttons">
-            <button class="btn-outline" onclick="showStep(5)">⬅️ Retour</button>
+            <button class="btn-outline" onclick="showStep('stepCoConstruction')">⬅️ Retour Discussion</button>
             <button class="btn-primary" onclick="showCompanyScan()">Générer Rapport ➡️</button>
         </div>
       </div>
@@ -200,9 +253,16 @@
       </div>
     </div>
 
-    <!-- Invitation -->
+    <!-- Invitation DISTINCTE -->
     <div id="invitePage" class="step">
-        <div class="card glass-effect"><h2>Inviter</h2><div id="inviteTimer"></div><div class="qr-wrapper"><div id="inviteQrcode"></div></div><button class="btn-outline" onclick="showStep(1)">Retour</button></div>
+        <div class="card glass-effect invite-card">
+            <h2 style="color:#F59E0B;">📨 INVITATION</h2>
+            <p style="text-align:center; font-size:0.9em;">Ce code permet à un collègue de rejoindre le jeu.</p>
+            <p style="text-align:center; font-weight:bold; color:#ef4444;">NE PAS SCANNER POUR JOUER</p>
+            <div id="inviteTimer"></div>
+            <div class="qr-wrapper qr-invite-wrapper"><div id="inviteQrcode"></div></div>
+            <div class="navigation-buttons"><button class="btn-outline" onclick="showStep(1)">Retour</button></div>
+        </div>
     </div>
 
     <!-- Modale Multimodal -->
