@@ -1,3 +1,43 @@
+/* ... (Début du CSS inchangé jusqu'au schéma) ... */
+
+/* SCHÉMA POSITIONNEMENT AMÉLIORÉ */
+.map-schematic {
+    height: 180px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 50%;
+    position: relative;
+    margin: 20px auto;
+    width: 180px;
+    border: 2px dashed rgba(255,255,255,0.2);
+}
+.map-point { position: absolute; font-size: 1.2rem; }
+.fixed { color: #F59E0B; font-size: 1.5rem; } /* Carrés jaunes pour repères */
+.mobile { color: white; opacity: 0.7; }
+
+/* Positions */
+.p-fix1 { top: 15%; left: 45%; }
+.p-fix2 { top: 75%; left: 20%; }
+.p-fix3 { top: 60%; left: 80%; }
+.p-mob1 { top: 40%; left: 40%; }
+.p-mob2 { top: 30%; left: 70%; }
+.p-mob3 { top: 60%; left: 30%; }
+.p-mob4 { top: 80%; left: 50%; }
+
+.map-radar {
+    position: absolute; top: 50%; left: 50%; width: 100%; height: 100%;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    border: 2px solid var(--primary);
+    box-shadow: 0 0 10px var(--primary);
+    animation: radar 3s infinite;
+    opacity: 0;
+}
+@keyframes radar { 
+    0% { width: 0; height: 0; opacity: 0.8; }
+    100% { width: 100%; height: 100%; opacity: 0; }
+}
+
+/* ... (Reste du CSS inchangé) ... */
 :root {
     --primary: #4F46E5; /* Indigo */
     --primary-dark: #4338ca;
@@ -170,37 +210,6 @@ video { width: 100%; height: 100%; object-fit: cover; }
     width: 200px; height: 200px;
     border: 2px solid var(--accent); border-radius: 20px;
     box-shadow: 0 0 0 9999px rgba(0,0,0,0.6);
-}
-
-/* SCHÉMA POSITIONNEMENT */
-.map-schematic {
-    height: 150px;
-    background: rgba(255,255,255,0.05);
-    border-radius: 50%;
-    position: relative;
-    margin: 20px auto;
-    width: 150px;
-    border: 2px dashed rgba(255,255,255,0.2);
-}
-.map-center {
-    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    font-size: 1.5rem;
-}
-.map-point { position: absolute; font-size: 1rem; }
-.p1 { top: 20%; left: 30%; }
-.p2 { top: 70%; left: 80%; }
-.p3 { top: 80%; left: 20%; color: #F59E0B; }
-.map-radar {
-    position: absolute; top: 50%; left: 50%; width: 100%; height: 100%;
-    border-radius: 50%;
-    transform: translate(-50%, -50%);
-    border: 1px solid var(--primary);
-    animation: radar 3s infinite;
-    opacity: 0;
-}
-@keyframes radar { 
-    0% { width: 0; height: 0; opacity: 0.8; }
-    100% { width: 100%; height: 100%; opacity: 0; }
 }
 
 /* Jeu */
