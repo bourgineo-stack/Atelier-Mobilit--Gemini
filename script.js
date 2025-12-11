@@ -1,3 +1,30 @@
+// ================= UTILITAIRES (PLACÉS AU DÉBUT POUR SÉCURITÉ) =================
+function $(id) { return document.getElementById(id); }
+
+// TOASTS LISIBLES (Fonction vitale pour le feedback)
+function showError(msg) {
+    console.error("Erreur:", msg); // Log pour le développeur
+    const errDiv = document.querySelector('.step.active .error-msg');
+    if (errDiv && errDiv.offsetParent !== null) {
+        errDiv.textContent = msg;
+        setTimeout(() => errDiv.textContent = '', 3000);
+    } else {
+        const div = document.createElement('div');
+        div.className = 'toast-msg error';
+        div.innerHTML = `<span>❌</span> <span>${msg}</span>`;
+        document.body.appendChild(div);
+        setTimeout(() => div.remove(), 3000);
+    }
+}
+
+function showSuccess(msg) {
+    const div = document.createElement('div');
+    div.className = 'toast-msg success';
+    div.innerHTML = `<span>✅</span> <span>${msg}</span>`;
+    document.body.appendChild(div);
+    setTimeout(() => div.remove(), 3000);
+}
+
 // ================= CONFIGURATION =================
 const APP_CONFIG = typeof CONFIG !== 'undefined' ? CONFIG : {
     EXPIRATION_DATE: "2025-12-31",
@@ -6,6 +33,8 @@ const APP_CONFIG = typeof CONFIG !== 'undefined' ? CONFIG : {
     MIN_PARTICIPANTS_REQUIRED: 1,
     GOOGLE_SCRIPT_URL: ""
 };
+
+console.log("Script chargé. Config:", APP_CONFIG);
 
 // ================= VARIABLES GLOBALES =================
 let myCoords = null, myUniqueId = '', myEmoji = '', myTransportMode = '', myTransportMode2 = '', mode1Days = 0, mode2Days = 0, myDepartureTime = '07:30', myFullAddress = '';
@@ -54,49 +83,33 @@ const QUESTIONS_FAR = [
     { q: "Connaissez-vous les services type 'GetAround' ?", sub: "Louer sa voiture quand elle ne sert pas au travail." }
 ];
 
-// ================= UTILITAIRES =================
-function $(id) { return document.getElementById(id); }
 function generateUniqueId() { return Math.random().toString(36).substr(2, 15); }
 function generateEmojiPseudo() { return EMOJI_SET[Math.floor(Math.random() * EMOJI_SET.length)] + EMOJI_SET[Math.floor(Math.random() * EMOJI_SET.length)] + EMOJI_SET[Math.floor(Math.random() * EMOJI_SET.length)]; }
 
-// TOASTS LISIBLES
-function showError(msg) {
-    const errDiv = document.querySelector('.step.active .error-msg');
-    if (errDiv && errDiv.offsetParent !== null) {
-        errDiv.textContent = msg;
-        setTimeout(() => errDiv.textContent = '', 3000);
-    } else {
-        const div = document.createElement('div');
-        div.className = 'toast-msg error';
-        div.innerHTML = `<span>❌</span> <span>${msg}</span>`;
-        document.body.appendChild(div);
-        setTimeout(() => div.remove(), 3000);
-    }
-}
-
-function showSuccess(msg) {
-    const div = document.createElement('div');
-    div.className = 'toast-msg success';
-    div.innerHTML = `<span>✅</span> <span>${msg}</span>`;
-    document.body.appendChild(div);
-    setTimeout(() => div.remove(), 3000);
-}
 
 // ================= INIT & NAVIGATION =================
 document.addEventListener('DOMContentLoaded', () => {
-    if (new Date() > new Date(APP_CONFIG.EXPIRATION_DATE)) {
-        document.body.innerHTML = "<h1 style='color:white;text-align:center;margin-top:50px;'>Session Expirée</h1>";
-        return;
-    }
+    try {
+        console.log("Initialisation de l'application...");
+        
+        if (new Date() > new Date(APP_CONFIG.EXPIRATION_DATE)) {
+            document.body.innerHTML = "<h1 style='color:white;text-align:center;margin-top:50px;'>Session Expirée</h1>";
+            return;
+        }
 
-    scanCanvas = document.getElementById('canvas');
-    if (scanCanvas) {
-        scanCtx = scanCanvas.getContext('2d', { willReadFrequently: true });
-    }
+        scanCanvas = document.getElementById('canvas');
+        if (scanCanvas) {
+            scanCtx = scanCanvas.getContext('2d', { willReadFrequently: true });
+        }
 
-    restoreUserData();
-    checkRGPDStatus();
-    if ($('multimodalCheck')) $('multimodalCheck').checked = false;
+        restoreUserData();
+        checkRGPDStatus();
+        if ($('multimodalCheck')) $('multimodalCheck').checked = false;
+        
+    } catch(e) {
+        console.error("Erreur critique au démarrage:", e);
+        alert("Erreur de démarrage: " + e.message);
+    }
 });
 
 function checkRGPDStatus() {
@@ -107,10 +120,15 @@ function checkRGPDStatus() {
 }
 
 function acceptRGPD() {
-    rgpdAccepted = true;
-    localStorage.setItem('rgpdAccepted', 'true');
-    $('rgpdNotice').style.display = 'none';
-    showSuccess("RGPD Validé");
+    try {
+        rgpdAccepted = true;
+        localStorage.setItem('rgpdAccepted', 'true');
+        const notice = $('rgpdNotice');
+        if(notice) notice.style.display = 'none';
+        showSuccess("RGPD Validé");
+    } catch(e) {
+        alert("Erreur lors de la validation : " + e.message);
+    }
 }
 
 function showRGPDDetails() {
