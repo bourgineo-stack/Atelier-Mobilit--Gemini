@@ -38,30 +38,31 @@ const miniChallenges = [
 ];
 
 // --- QUESTIONS OPTIMISÉES (NUDGE / SCIENCE COMPORTEMENTALE) ---
-
+// Questions pour les participants habitant PROCHE du lieu de travail (< 5km)
 const QUESTIONS_CLOSE = [
-    { q: "Levez la main si vous avez déjà fait le trajet en vélo, même une seule fois.", sub: "Regardez autour de vous : la pratique existe déjà." },
-    { q: "Votre vrai frein au vélo, c'est quoi : transpiration, météo ou sécurité ?", sub: "Soyons honnêtes sur ce qui bloque vraiment." },
-    { q: "Top chrono : qui parie que le vélo bat la voiture en heure de pointe ?", sub: "Sur 5km, le vélo met 15-20min constants. Et vous ?" },
-    { q: "Entre arriver en sueur ou économiser 30€/mois, vous choisissez quoi ?", sub: "La question des douches et du FMD est centrale." },
-    { q: "Qui a déjà vu un collègue arriver en trottinette ou vélo pliant ?", sub: "La micro-mobilité permet de faire les derniers kilomètres sans effort." },
-    { q: "Si le bus passait 10 min plus tôt/tard, ça changerait tout pour vous ?", sub: "La flexibilité horaire est-elle une solution ?" },
-    { q: "À deux, on se challenge : qui fait domicile-bureau en vélo cette semaine ?", sub: "Trouvez un partenaire de route dans ce groupe." }
+    { q: "Qui a déjà testé le vélo ou la marche pour venir, même une seule fois ?", sub: "Levez la main ! La pratique existe peut-être déjà autour de vous." },
+    { q: "Quel est votre VRAI frein : transpiration, météo, sécurité, ou autre chose ?", sub: "Soyons honnêtes sur ce qui bloque vraiment." },
+    { q: "Sur 5 km, qui pense que le vélo bat la voiture aux heures de pointe ?", sub: "En ville, le vélo met 15-20 min constants. Et vous en voiture ?" },
+    { q: "Entre arriver légèrement essoufflé ou économiser 150€/mois, que choisissez-vous ?", sub: "Le calcul économique est souvent sous-estimé." },
+    { q: "Qui connaît un collègue qui vient déjà en mobilité douce ?", sub: "Un binôme ou un mentor peut tout changer." },
+    { q: "Si des douches et vestiaires étaient disponibles, ça changerait quoi pour vous ?", sub: "L'infrastructure est-elle le vrai blocage ?" },
+    { q: "Défi : qui est prêt à tester UN trajet alternatif cette semaine ?", sub: "Pas d'engagement long terme, juste un essai." }
 ];
 
+// Questions pour les participants habitant LOIN du lieu de travail (> 5km)
 const QUESTIONS_FAR = [
-    { q: "Levez la main si vous partez entre 7h15 et 7h45 le matin.", sub: "Regardez bien : ce sont vos covoitureurs potentiels !" },
-    { q: "Combien de places vides dans vos voitures ce matin ? On compte ensemble.", sub: "C'est autant d'économies potentielles qui s'envolent." },
-    { q: "Votre vrai frein au covoiturage : horaires, détour, ou l'humain ?", sub: "La peur de l'inconnu ou la contrainte technique ?" },
-    { q: "Qui serait prêt à faire UN SEUL trajet test en covoiturage cette semaine ?", sub: "Pas d'engagement long terme, juste un essai." },
-    { q: "Votre vrai frein à l'électrique : prix, autonomie, ou recharge ?", sub: "Démystifions les blocages techniques." },
-    { q: "Qui habite à moins de 15 minutes d'une gare ?", sub: "Le train + vélo/trottinette est souvent imbattable sur le temps." },
-    { q: "Si vous récupériez 5h/semaine de trajet grâce au Télétravail, vous en feriez quoi ?", sub: "Sport, famille, sommeil ?" }
+    { q: "Qui part entre 7h et 8h le matin ? Levez la main !", sub: "Regardez autour de vous : ce sont vos covoitureurs potentiels." },
+    { q: "Combien de places vides dans vos voitures ce matin ? Comptez ensemble.", sub: "Chaque place vide = de l'argent qui s'envole." },
+    { q: "Votre vrai frein au covoiturage : les horaires, le détour, ou la gêne de demander ?", sub: "Identifions le vrai blocage." },
+    { q: "Qui serait OK pour tester UN trajet en covoiturage cette semaine ?", sub: "Un essai sans engagement, juste pour voir." },
+    { q: "Qui habite à moins de 15 min d'une gare ou d'un arrêt de bus/tram ?", sub: "Le combo TC + vélo pliant est souvent sous-estimé." },
+    { q: "Si vous pouviez télétravailler 1 jour de plus par semaine, qu'en feriez-vous ?", sub: "Temps gagné : sport, famille, sommeil ?" },
+    { q: "Qui connaît déjà quelqu'un dans cette salle qui habite près de chez lui ?", sub: "Le covoiturage commence par une conversation." }
 ];
 
 // ================= UTILITAIRES =================
 function $(id) { return document.getElementById(id); }
-function generateUniqueId() { return Math.random().toString(36).substr(2, 15); }
+function generateUniqueId() { return 'u_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now().toString(36); }
 function generateEmojiPseudo() { return EMOJI_SET[Math.floor(Math.random() * EMOJI_SET.length)] + EMOJI_SET[Math.floor(Math.random() * EMOJI_SET.length)] + EMOJI_SET[Math.floor(Math.random() * EMOJI_SET.length)]; }
 
 // TOASTS LISIBLES
@@ -94,14 +95,22 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
+    // Initialiser le canvas pour le scan
     scanCanvas = document.getElementById('canvas');
     if (scanCanvas) {
         scanCtx = scanCanvas.getContext('2d', { willReadFrequently: true });
     }
 
+    // Restaurer les données utilisateur AVANT tout
     restoreUserData();
     checkRGPDStatus();
+    
     if ($('multimodalCheck')) $('multimodalCheck').checked = false;
+    
+    // Debug: afficher l'état des données
+    console.log('[INIT] myUniqueId:', myUniqueId);
+    console.log('[INIT] myCoords:', myCoords);
+    console.log('[INIT] myEmoji:', myEmoji);
 });
 
 function checkRGPDStatus() {
@@ -169,9 +178,33 @@ function showStep(n) {
         }
     }
     stopAllCameras();
-    if (n === 2) setTimeout(() => genMyQRCode('qrcode'), 100);
-    if (n === 3) { initGame(); setTimeout(() => genMyQRCode('qrcodeStep3'), 100); }
-    if (n === 4) setTimeout(() => genMyQRCode('qrcodeStep4'), 100);
+    
+    // Génération des QR codes avec vérification des données
+    if (n === 2) {
+        setTimeout(() => {
+            if (myUniqueId && myCoords) {
+                genMyQRCode('qrcode');
+            } else {
+                console.warn('[QR] Données manquantes pour step 2');
+                showError("Profil incomplet. Retournez à l'étape 1.");
+            }
+        }, 200);
+    }
+    if (n === 3) { 
+        initGame(); 
+        setTimeout(() => {
+            if (myUniqueId && myCoords) {
+                genMyQRCode('qrcodeStep3');
+            }
+        }, 200);
+    }
+    if (n === 4) {
+        setTimeout(() => {
+            if (myUniqueId && myCoords) {
+                genMyQRCode('qrcodeStep4');
+            }
+        }, 200);
+    }
     if (n === 5) updateStep5Stats();
     if (n === 6) initStep6Form();
     window.scrollTo(0, 0);
@@ -243,7 +276,8 @@ $('saveLocation').onclick = async () => {
     if (!addr || !mode) return showError("Remplissez tous les champs");
 
     try {
-        $('saveLocation').textContent = "Recherche..."; $('saveLocation').disabled = true;
+        $('saveLocation').textContent = "Recherche..."; 
+        $('saveLocation').disabled = true;
 
         const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addr)}&addressdetails=1`);
         const data = await res.json();
@@ -254,13 +288,24 @@ $('saveLocation').onclick = async () => {
         myTransportMode = mode;
         myDepartureTime = $('departureTime').value;
 
+        // Générer l'ID et l'emoji AVANT de sauvegarder
+        if (!myUniqueId) { 
+            myUniqueId = generateUniqueId(); 
+        }
+        if (!myEmoji) { 
+            myEmoji = generateEmojiPseudo(); 
+        }
+
+        // Sauvegarder TOUT en localStorage
         localStorage.setItem('userCoords', JSON.stringify(myCoords));
         localStorage.setItem('transportMode', myTransportMode);
         localStorage.setItem('departureTime', myDepartureTime);
         localStorage.setItem('fullAddress', myFullAddress);
+        localStorage.setItem('myUniqueId', myUniqueId);
+        localStorage.setItem('myEmoji', myEmoji);
 
-        if (!myUniqueId) { myUniqueId = generateUniqueId(); localStorage.setItem('myUniqueId', myUniqueId); }
-        if (!myEmoji) { myEmoji = generateEmojiPseudo(); localStorage.setItem('myEmoji', myEmoji); }
+        // Debug
+        console.log('[SAVE] Données sauvegardées:', { myUniqueId, myEmoji, myCoords });
 
         $('locationSection').style.display = 'none';
         $('afterLocationSection').style.display = 'block';
@@ -269,71 +314,116 @@ $('saveLocation').onclick = async () => {
         const addrDisplay = $('detectedAddress');
         if (addrDisplay) addrDisplay.textContent = myFullAddress.split(',').slice(0, 2).join(',');
 
+        // Envoi Google Sheets
         const payload = {
             type: 'participant', id: myUniqueId, emoji: myEmoji, lat: myCoords.lat, lon: myCoords.lon,
             address: myFullAddress, transport: myTransportMode, transportMode2: myTransportMode2,
             mode1Days: mode1Days, mode2Days: mode2Days, departureTime: myDepartureTime
         };
-        if (googleScriptUrl) fetch(googleScriptUrl, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
+        if (googleScriptUrl) {
+            fetch(googleScriptUrl, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) })
+                .catch(e => console.warn('Envoi Google Sheets échoué:', e));
+        }
+
+        $('saveLocation').textContent = "Valider ma localisation"; 
+        $('saveLocation').disabled = false;
 
     } catch (e) {
         showError(e.message);
-        $('saveLocation').textContent = "Valider ma localisation"; $('saveLocation').disabled = false;
+        $('saveLocation').textContent = "Valider ma localisation"; 
+        $('saveLocation').disabled = false;
     }
 };
 
 function restoreUserData() {
-    myUniqueId = localStorage.getItem('myUniqueId');
-    myEmoji = localStorage.getItem('myEmoji');
+    myUniqueId = localStorage.getItem('myUniqueId') || '';
+    myEmoji = localStorage.getItem('myEmoji') || '';
+    
     const coords = localStorage.getItem('userCoords');
-    if (coords) myCoords = JSON.parse(coords);
-    myTransportMode = localStorage.getItem('transportMode');
+    if (coords) {
+        try {
+            myCoords = JSON.parse(coords);
+        } catch(e) {
+            myCoords = null;
+        }
+    }
+    
+    myTransportMode = localStorage.getItem('transportMode') || '';
     myTransportMode2 = localStorage.getItem('transportMode2') || '';
     mode1Days = parseInt(localStorage.getItem('mode1Days') || '0');
     mode2Days = parseInt(localStorage.getItem('mode2Days') || '0');
+    myFullAddress = localStorage.getItem('fullAddress') || '';
+    myDepartureTime = localStorage.getItem('departureTime') || '07:30';
+    
     const saved = localStorage.getItem('participants');
-    if (saved) { participants = JSON.parse(saved); scanCount = participants.length; } else { scanCount = 0; }
+    if (saved) { 
+        try {
+            participants = JSON.parse(saved); 
+            scanCount = participants.length; 
+        } catch(e) {
+            participants = [];
+            scanCount = 0;
+        }
+    } else { 
+        scanCount = 0; 
+    }
+    
+    console.log('[RESTORE] Données restaurées:', { myUniqueId, myEmoji, myCoords, scanCount });
 }
 
 // ================= CAMERA & QR =================
 function genMyQRCode(elId) {
     const el = $(elId);
-    if (!el) return;
+    if (!el) {
+        console.error('[QR] Element non trouvé:', elId);
+        return;
+    }
+    
+    // Vérification des données obligatoires
+    if (!myUniqueId || !myCoords) {
+        console.error('[QR] Données manquantes - myUniqueId:', myUniqueId, 'myCoords:', myCoords);
+        el.innerHTML = '<p style="color:#ef4444; text-align:center; padding:20px;">⚠️ Profil incomplet</p>';
+        return;
+    }
+    
     el.innerHTML = '';
     
-    // Sécurité : Vérifier les données avant de générer
-    const id = myUniqueId || 'unknown';
-    const lat = myCoords ? myCoords.lat : 0;
-    const lon = myCoords ? myCoords.lon : 0;
-
-    // Utilisation d'un format minimal pour alléger le QR code
-    const qrData = JSON.stringify({ id: id, lat: lat, lon: lon });
-
-    new QRCode(el, {
-        text: qrData,
-        width: 180, 
-        height: 180,
-        colorDark: "#0f172a", 
-        colorLight: "#ffffff",
-        correctLevel: QRCode.CorrectLevel.L // Niveau L pour meilleure lisibilité (moins de densité)
+    // Format compact pour QR code plus lisible
+    const qrData = JSON.stringify({ 
+        id: myUniqueId, 
+        lat: Math.round(myCoords.lat * 10000) / 10000,  // 4 décimales suffisent
+        lon: Math.round(myCoords.lon * 10000) / 10000,
+        e: myEmoji  // emoji court
     });
+    
+    console.log('[QR] Génération QR code:', qrData);
+
+    try {
+        new QRCode(el, {
+            text: qrData,
+            width: 180, 
+            height: 180,
+            colorDark: "#0f172a", 
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.L
+        });
+        console.log('[QR] QR code généré avec succès pour:', elId);
+    } catch(e) {
+        console.error('[QR] Erreur génération:', e);
+        el.innerHTML = '<p style="color:#ef4444;">Erreur QR</p>';
+    }
 }
 
 function startScanLoop(type) {
     scanning = true;
 
-    // Définition des IDs en fonction du type
     let camViewId, videoId, btnId, stopBtnId;
 
     if (type === 'group') {
         camViewId = 'groupCameraView';
         videoId = 'groupVideo';
-        btnId = null; // Pas de bouton à cacher ici, géré par l'interface
-        stopBtnId = null;
-        // On affiche l'interface spécifique
         $('groupScanInterface').style.display = 'block';
     } else {
-        // Types classiques (normal, game, company, positioning)
         camViewId = type === 'game' ? 'gameCameraView' : (type === 'company' ? 'companyCameraView' : (type === 'positioning' ? 'positioningCameraView' : 'cameraView'));
         videoId = type === 'game' ? 'gameVideo' : (type === 'company' ? 'companyVideo' : (type === 'positioning' ? 'positioningVideo' : 'video'));
         btnId = type === 'game' ? 'gameScanBtn' : (type === 'company' ? null : (type === 'positioning' ? 'positioningScanBtn' : 'scanBtn'));
@@ -346,19 +436,20 @@ function startScanLoop(type) {
 
     const video = $(videoId);
     if (!video) {
-        console.error("Vidéo introuvable pour le type:", type);
+        console.error("[SCAN] Vidéo introuvable pour le type:", type);
         return;
     }
 
     navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
         .then(stream => {
             video.srcObject = stream;
-            video.setAttribute("playsinline", true); // Important pour iOS
+            video.setAttribute("playsinline", true);
             video.play();
+            console.log('[SCAN] Caméra démarrée pour:', type);
             requestAnimationFrame(() => tick(video, type));
         })
         .catch(err => { 
-            console.error("Erreur accès caméra:", err);
+            console.error("[SCAN] Erreur accès caméra:", err);
             showError("Erreur caméra: " + err.message); 
             stopAllCameras(); 
         });
@@ -371,16 +462,14 @@ function tick(video, type) {
         if (!scanCanvas) {
             scanCanvas = document.getElementById('canvas');
             if(!scanCanvas) {
-                 // Création à la volée si manquant dans le HTML
-                 scanCanvas = document.createElement('canvas');
-                 scanCanvas.id = 'canvas';
-                 scanCanvas.style.display = 'none';
-                 document.body.appendChild(scanCanvas);
+                scanCanvas = document.createElement('canvas');
+                scanCanvas.id = 'canvas';
+                scanCanvas.style.display = 'none';
+                document.body.appendChild(scanCanvas);
             }
             scanCtx = scanCanvas.getContext('2d', { willReadFrequently: true });
         }
 
-        // Toujours redimensionner le canvas à la taille de la vidéo actuelle
         scanCanvas.width = video.videoWidth;
         scanCanvas.height = video.videoHeight;
         
@@ -388,32 +477,30 @@ function tick(video, type) {
         
         const imageData = scanCtx.getImageData(0, 0, scanCanvas.width, scanCanvas.height);
         
-        // Tentative de lecture du QR code
         const code = jsQR(imageData.data, imageData.width, imageData.height, {
             inversionAttempts: "dontInvert",
         });
 
         if (code) {
-            console.log("QR Code détecté:", code.data); // Log pour debug
+            console.log("[SCAN] QR Code détecté:", code.data);
             try {
                 const data = JSON.parse(code.data);
                 let success = false;
 
-                // --- LOGIQUE DE SCAN CENTRALISÉE ---
+                // Normaliser les données (compatibilité avec ancien format)
+                if (data.e && !data.emoji) data.emoji = data.e;
+
                 if (type === 'group') {
-                    // Pour le groupe, on scanne en boucle sans fermer la caméra
                     if (data.id) {
                         addMemberToGroup(data);
-                        // On ne met pas success=true pour ne pas stopper la caméra
                     }
                 }
                 else if (type === 'company' && data.type === 'company') {
                     handleCompanyScan(data);
                     success = true;
                 }
-                // Cas général : scan de participant (étape 2, jeu, ou positionnement)
-                // On vérifie qu'il y a un ID et une Lat (signature d'un participant)
                 else if (data.id && data.lat !== undefined) {
+                    console.log('[SCAN] Participant détecté:', data.id);
                     if (type === 'game') success = handleGameScan(data);
                     else if (type === 'positioning') success = handlePositioningScan(data);
                     else success = addParticipant(data);
@@ -422,8 +509,8 @@ function tick(video, type) {
                 if (success) stopAllCameras();
 
             } catch (e) { 
-                // Ignorer silencieusement les QR codes qui ne sont pas du JSON valide (autres applis, menus...)
-                // console.warn("QR code invalide (pas du JSON ou format incorrect)", e);
+                // QR code non JSON - ignorer silencieusement
+                console.log('[SCAN] QR non-JSON ignoré');
             }
         }
     }
@@ -438,66 +525,59 @@ function stopAllCameras() {
     });
     document.querySelectorAll('.camera-container').forEach(e => e.style.display = 'none');
 
-    // Réafficher les boutons
     ['scanBtn', 'gameScanBtn', 'positioningScanBtn'].forEach(id => { if ($(id)) $(id).style.display = 'block'; });
-    // Cacher les boutons stop
     ['stopCamBtn', 'stopGameCamBtn', 'stopPosCamBtn', 'stopCompCamBtn'].forEach(id => { if ($(id)) $(id).style.display = 'none'; });
 }
 
 // ================= PHASE CO-CONSTRUCTION (GROUPE) =================
 function initGroupPhase() {
-    // 1. Tirage au sort du chef
     const challenges = [
         "Le plus jeune du groupe",
         "Celui avec les cheveux les plus longs",
-        "Celui qui fait le mieux le grand écart",
-        "Celui qui tire la langue le plus loin"
+        "Celui qui habite le plus loin",
+        "Celui qui est arrivé le premier ce matin"
     ];
     const winner = challenges[Math.floor(Math.random() * challenges.length)];
     $('leaderChallenge').innerHTML = `👑 Le chef est : <br><span style="color:#F59E0B; font-size:1.2em;">${winner}</span>`;
     
-    // 2. Afficher interface scan
     $('startGroupBtn').style.display = 'none';
     $('groupScanInterface').style.display = 'block';
     
-    // 3. Reset groupe
     currentGroup = [];
     updateGroupList();
 }
 
 function addMemberToGroup(data) {
-    // Anti-doublon et auto-scan
     if(currentGroup.find(m => m.id === data.id)) return;
     if(data.id === myUniqueId) { showError("Vous êtes déjà le chef !"); return; }
     
     currentGroup.push(data);
     updateGroupList();
-    showSuccess(`${data.emoji || 'Membre'} ajouté !`);
+    showSuccess(`${data.emoji || data.e || '👤'} ajouté !`);
     
-    // Pause technique pour éviter le scan multiple immédiat
     scanning = false;
-    setTimeout(() => { scanning = true; requestAnimationFrame(() => tick($('groupVideo'), 'group')); }, 1500);
+    setTimeout(() => { 
+        scanning = true; 
+        const video = $('groupVideo');
+        if (video) requestAnimationFrame(() => tick(video, 'group')); 
+    }, 1500);
 }
 
 function updateGroupList() {
     const list = $('groupMembersList');
-    list.innerHTML = currentGroup.map(m => `<div>✅ ${m.emoji || '👤'} (ajouté)</div>`).join('');
-    
-    // Activer bouton si au moins 1 membre scanné
+    list.innerHTML = currentGroup.map(m => `<div>✅ ${m.emoji || m.e || '👤'} (ajouté)</div>`).join('');
     $('validateGroupBtn').disabled = currentGroup.length < 1;
 }
 
 function validateGroup() {
     stopAllCameras();
     
-    // Envoi sheet
     sendToGoogleSheets({
         type: 'group_formation',
         leaderId: myUniqueId,
         members: currentGroup.map(m => m.id).join(',')
     });
     
-    // Passage à la phase 2 : Discussion
     $('groupFormationSection').style.display = 'none';
     $('groupDiscussionSection').style.display = 'block';
 }
@@ -507,11 +587,9 @@ function startDiscussion(type) {
     currentQuestions = type === 'close' ? QUESTIONS_CLOSE : QUESTIONS_FAR;
     questionIndex = 0;
     
-    // Highlight bouton
     document.querySelectorAll('.coach-btn').forEach(b => b.classList.remove('selected'));
     event.target.classList.add('selected');
     
-    // Afficher carte question
     $('dynamicQuestionCard').style.display = 'block';
     showNextQuestion();
 }
@@ -528,7 +606,6 @@ function showNextQuestion() {
     $('questionText').textContent = q.q;
     $('questionSubtext').textContent = q.sub;
     
-    // Animation simple
     const card = $('dynamicQuestionCard');
     card.style.opacity = 0;
     setTimeout(() => card.style.opacity = 1, 100);
@@ -542,14 +619,25 @@ function nextQuestion() {
 // ================= LOGIQUE METIER =================
 function haversineKm(lat1, lon1, lat2, lon2) {
     const R = 6371;
-    const dLat = (lat2 - lat1) * Math.PI / 180; const dLon = (lon2 - lon1) * Math.PI / 180;
+    const dLat = (lat2 - lat1) * Math.PI / 180; 
+    const dLon = (lon2 - lon1) * Math.PI / 180;
     const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
     return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
 function addParticipant(data) {
-    if (participants.find(p => p.id === data.id)) return false;
-    if (data.id === myUniqueId) return false;
+    if (!myCoords) {
+        showError("Votre position n'est pas définie");
+        return false;
+    }
+    if (participants.find(p => p.id === data.id)) {
+        showError("Déjà scanné !");
+        return false;
+    }
+    if (data.id === myUniqueId) {
+        showError("C'est votre propre QR !");
+        return false;
+    }
 
     const dist = haversineKm(myCoords.lat, myCoords.lon, data.lat, data.lon);
     participants.push({ ...data, distance: dist });
@@ -557,22 +645,25 @@ function addParticipant(data) {
 
     scanCount = participants.length;
     localStorage.setItem('scanCount', scanCount);
-    $('scanCount').textContent = scanCount;
-    $('step2Progress').style.width = Math.min((scanCount / 20) * 100, 100) + '%';
+    
+    if ($('scanCount')) $('scanCount').textContent = scanCount;
+    if ($('step2Progress')) $('step2Progress').style.width = Math.min((scanCount / 20) * 100, 100) + '%';
 
     showSuccess(`Scan OK ! (${dist.toFixed(1)} km)`);
 
-    if (participants.length >= APP_CONFIG.MIN_PARTICIPANTS_REQUIRED) $('goToStep3').disabled = false;
+    if (participants.length >= APP_CONFIG.MIN_PARTICIPANTS_REQUIRED && $('goToStep3')) {
+        $('goToStep3').disabled = false;
+    }
 
     if (dist < 5) {
         const chal = miniChallenges[Math.floor(Math.random() * miniChallenges.length)];
         $('challengeTitle').textContent = chal.title;
         $('challengeTask').textContent = chal.task;
         $('challengeSection').style.display = 'block';
-        $('scanBtn').style.display = 'none';
+        if ($('scanBtn')) $('scanBtn').style.display = 'none';
         $('continueChallengeBtn').onclick = () => {
             $('challengeSection').style.display = 'none';
-            $('scanBtn').style.display = 'block';
+            if ($('scanBtn')) $('scanBtn').style.display = 'block';
         };
     }
 
@@ -585,22 +676,28 @@ function addParticipant(data) {
 
 // ================= JEU & POSITIONNEMENT =================
 function handlePositioningScan(data) {
+    if (!myCoords) return false;
     const dist = haversineKm(myCoords.lat, myCoords.lon, data.lat, data.lon);
     showSuccess(`📍 Distance: ${dist.toFixed(1)} km`);
-    $('positioningScanBtn').style.display = 'block';
     return true;
 }
 
 function initGame() {
-    if (participants.length < 1) return;
+    if (participants.length < 1) {
+        console.log('[GAME] Pas assez de participants');
+        return;
+    }
     gameTargets = participants.sort((a, b) => a.distance - b.distance).slice(0, 5);
-    scannedTargets = []; score = 0; attemptsLeft = 5;
+    scannedTargets = []; 
+    score = 0; 
+    attemptsLeft = 5;
     updateGameUI();
 }
 
 function updateGameUI() {
-    $('scoreBadge').textContent = `${score}/3`;
-    $('attemptsLeft').textContent = attemptsLeft;
+    if ($('scoreBadge')) $('scoreBadge').textContent = `${score}/3`;
+    if ($('attemptsLeft')) $('attemptsLeft').textContent = attemptsLeft;
+    
     let html = '';
     gameTargets.forEach((t, i) => {
         const isScanned = scannedTargets.includes(t.id);
@@ -610,13 +707,25 @@ function updateGameUI() {
             <div class="icon-badge">${isScanned ? '✅' : '🎯'}</div>
         </div>`;
     });
-    $('targetList').innerHTML = html;
+    if ($('targetList')) $('targetList').innerHTML = html;
 }
 
 function handleGameScan(data) {
     const target = gameTargets.find(t => t.id === data.id);
-    if (!target) { showError("Ce n'est pas un voisin proche !"); return false; }
-    if (scannedTargets.includes(data.id)) { showError("Déjà trouvé !"); return false; }
+    if (!target) { 
+        showError("Ce n'est pas un voisin proche !"); 
+        attemptsLeft--;
+        updateGameUI();
+        if (attemptsLeft <= 0) {
+            $('gameResult').innerHTML = `<div class="error-msg">😞 Partie terminée</div>`;
+            $('gameScanBtn').style.display = 'none';
+        }
+        return false; 
+    }
+    if (scannedTargets.includes(data.id)) { 
+        showError("Déjà trouvé !"); 
+        return false; 
+    }
 
     scannedTargets.push(data.id);
     score++;
@@ -637,15 +746,15 @@ function handleGameScan(data) {
 function resetGame() {
     scannedTargets = []; score = 0; attemptsLeft = 5;
     updateGameUI();
-    $('gameScanBtn').style.display = 'block';
-    $('gameResult').innerHTML = '';
+    if ($('gameScanBtn')) $('gameScanBtn').style.display = 'block';
+    if ($('gameResult')) $('gameResult').innerHTML = '';
 }
 
 // ================= FORMULAIRE AVEC HIERARCHIE =================
 function initStep6Form() {
     const createFields = (listId, items, type) => {
         const list = $(listId);
-        if (list.children.length > 0) return;
+        if (!list || list.children.length > 0) return;
 
         items.forEach((item, i) => {
             const isOther = item.toLowerCase().includes("autre");
@@ -701,11 +810,10 @@ function updatePriority(type, name, value) {
 
 function updateCommitmentValue() {
     commitmentLevel = parseInt($('commitmentRange').value);
-    $('commitmentValue').textContent = commitmentLevel;
+    if ($('commitmentValue')) $('commitmentValue').textContent = commitmentLevel;
 }
 
 function showCompanyScan() {
-    // Save group note first (si elle existe)
     const noteField = $('groupNote');
     if(noteField) {
         localStorage.setItem('groupNote', noteField.value);
@@ -745,7 +853,6 @@ function showCompanyScan() {
     $('companyScanPage').classList.add('active');
     $('step6').classList.remove('active');
     
-    // Important: cacher l'étape co-construction si elle était active
     const coConst = $('stepCoConstruction');
     if(coConst) coConst.classList.remove('active');
 
@@ -765,7 +872,9 @@ function adminLogin() {
         $('adminLogin').style.display = 'none';
         $('adminPanel').style.display = 'block';
         refreshAdminStats();
-    } else { showError("Mot de passe incorrect"); }
+    } else { 
+        showError("Mot de passe incorrect"); 
+    }
 }
 
 async function generateCompanyQR() {
@@ -797,10 +906,10 @@ async function generateCompanyQR() {
 
 function updateStep5Stats() {
     const total = participants.length + 1;
-    $('totalParticipants').textContent = total;
+    if ($('totalParticipants')) $('totalParticipants').textContent = total;
     if (participants.length > 0) {
         const avg = participants.reduce((acc, p) => acc + p.distance, 0) / participants.length;
-        $('avgDistance').textContent = avg.toFixed(1);
+        if ($('avgDistance')) $('avgDistance').textContent = avg.toFixed(1);
     }
 }
 
@@ -811,7 +920,7 @@ function handleCompanyScan(data) {
     let factor = CO2_FACTORS[myTransportMode] || 0.1;
     const co2 = Math.round(dist * 2 * 220 * factor * 0.3);
 
-    $('co2Savings').textContent = co2;
+    if ($('co2Savings')) $('co2Savings').textContent = co2;
 
     stopAllCameras();
     $('companyScanPage').classList.remove('active');
@@ -851,7 +960,7 @@ async function exportExcel() {
     } catch (e) {
         console.warn("Export Google échoué, fallback local");
         const wb = XLSX.utils.book_new();
-        const localParts = participants.map(p => ({ Emoji: p.emoji, Distance: p.distance, Mode: p.transport }));
+        const localParts = participants.map(p => ({ Emoji: p.emoji || p.e, Distance: p.distance, Mode: p.transport }));
         XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(localParts), "Mes Scans Locaux");
         XLSX.writeFile(wb, "Export_Local_Secours.xlsx");
     }
@@ -859,10 +968,10 @@ async function exportExcel() {
 }
 
 function refreshAdminStats() {
-    $('adminTotalUsers').textContent = participants.length + 1;
+    if ($('adminTotalUsers')) $('adminTotalUsers').textContent = participants.length + 1;
     if (participants.length > 0) {
         const avg = participants.reduce((acc, p) => acc + p.distance, 0) / participants.length;
-        $('adminAvgDistance').textContent = avg.toFixed(1);
+        if ($('adminAvgDistance')) $('adminAvgDistance').textContent = avg.toFixed(1);
     }
 }
 
@@ -898,7 +1007,7 @@ function generatePDF() {
 
     <div class="card">
         <h2>🌍 Impact & Réseau</h2>
-        <p><strong>Gain potentiel :</strong> <span style="color:#10b981;font-weight:bold;font-size:1.5em;">${$('co2Savings').textContent} kg CO2/an</span></p>
+        <p><strong>Gain potentiel :</strong> <span style="color:#10b981;font-weight:bold;font-size:1.5em;">${$('co2Savings') ? $('co2Savings').textContent : '0'} kg CO2/an</span></p>
         <p><strong>Voisins trouvés :</strong> ${participants.slice(0, 5).length}</p>
     </div>
 
@@ -915,16 +1024,16 @@ function generatePDF() {
         
         <div class="note-box">
             <strong>📝 Note de Groupe :</strong><br>
-            ${groupNote}
+            ${groupNote || '(aucune)'}
         </div>
 
         <p style="margin-top:15px;"><strong>Engagement personnel :</strong> ${commitmentLevel}%</p>
     </div>
 
-    <p style="text-align:center;font-size:0.8em;color:#666;">Généré par l'Atelier Mobilité. Conservez ce document.</p>
+    <p style="text-align:center;font-size:0.8em;color:#666;">Généré par l'Atelier Mobilité GoDifferent</p>
     
     <button onclick="window.print()" class="btn">🖨️ Imprimer / Sauvegarder en PDF</button>
-    <button onclick="window.close()" class="btn btn-close">❌ Fermer la fenêtre</button>
+    <button onclick="window.close()" class="btn btn-close">❌ Fermer</button>
     </body></html>`;
     win.document.write(content);
     win.document.close();
