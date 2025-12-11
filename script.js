@@ -507,7 +507,44 @@ function updateCommitmentValue() {
     $('commitmentValue').textContent = commitmentLevel;
 }
 
+// ================= CO-CONSTRUCTION (New Step) =================
+function showMobilityAdvice(type) {
+    const contentDiv = $('mobilityAdviceContent');
+    const title = $('adviceTitle');
+    const text = $('adviceText');
+    const questions = $('adviceQuestions');
+    
+    contentDiv.style.display = 'block';
+    
+    // Contenu "Nudge"
+    if(type === 'close') {
+        title.textContent = "🏙️ Mobilité Proche (< 10km)";
+        text.innerHTML = "Pour les trajets courts, le vélo électrique ou la marche sont souvent plus rapides que la voiture aux heures de pointe !<br><br><strong>Le saviez-vous ?</strong><br>60% des trajets domicile-travail de moins de 5km se font en voiture.";
+        questions.innerHTML = `
+            <li>Et si le tram est en grève, avez-vous essayé le vélo ?</li>
+            <li>Est-il plus simple de venir à vélo avec un collègue ?</li>
+            <li>Connaissez-vous les aides pour l'achat d'un VAE ?</li>
+        `;
+    } else {
+        title.textContent = "🛣️ Mobilité Éloignée (> 10km)";
+        text.innerHTML = "Pour les longues distances, la combinaison Voiture + Train ou le Covoiturage sont les rois de l'économie.<br><br><strong>Le saviez-vous ?</strong><br>Covoiturer 2 fois par semaine réduit vos frais de carburant de 40%.";
+        questions.innerHTML = `
+            <li>Imaginez un moyen de faire le 'dernier kilomètre' (trottinette dans le coffre ?)</li>
+            <li>Comment s'organiser : App de covoit ou simple groupe WhatsApp ?</li>
+            <li>Le télétravail est-il possible pour réduire la fréquence ?</li>
+        `;
+    }
+    
+    // Highlight button
+    document.querySelectorAll('.coach-btn').forEach(b => b.classList.remove('selected'));
+    event.target.classList.add('selected');
+}
+
 function showCompanyScan() {
+    // Save group note first
+    const groupNote = $('groupNote').value;
+    localStorage.setItem('groupNote', groupNote);
+
     const formatData = (obj, listId, typePrefix) => {
         return Object.entries(obj).map(([k, v]) => {
             let displayName = k;
@@ -534,12 +571,14 @@ function showCompanyScan() {
 
     sendToGoogleSheets({
         type: 'propositions', participantId: myUniqueId, emoji: myEmoji,
-        alternatives: altStr, contraintes: consStr, leviers: levStr, engagement: commitmentLevel
+        alternatives: altStr, contraintes: consStr, leviers: levStr, engagement: commitmentLevel,
+        groupNote: groupNote
     });
 
     showStep('companyScanPage');
     $('companyScanPage').classList.add('active');
     $('step6').classList.remove('active');
+    $('stepCoConstruction').classList.remove('active'); // Ensure hidden
     startScanLoop('company');
 }
 
@@ -634,26 +673,9 @@ async function exportExcel() {
         const data = await res.json();
         
         const wb = XLSX.utils.book_new();
-        // MERGE INTELLIGENT POUR L'EXPORT
-        // On crée une feuille "MASTER" qui regroupe tout
-        if(data.participants) {
-            const masterData = data.participants.map(user => {
-                // Trouver les propositions associées (si dispo)
-                const props = data.propositions ? data.propositions.find(p => p['Emoji'] === user['Emoji']) : {};
-                return {
-                    ...user, 
-                    ...(props || {}),
-                    "Distance Domicile-Travail": data.distances ? (data.distances.find(d => d['Emoji'] === user['Emoji'])?.Distance || "") : ""
-                };
-            });
-            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(masterData), "Master Data");
-        }
-
-        // Feuilles brutes de secours
-        if(data.participants) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data.participants), "Raw_Participants");
-        if(data.scans) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data.scans), "Raw_Scans");
-        
-        XLSX.writeFile(wb, "Atelier_Mobilité_Complet.xlsx");
+        if(data.participants) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data.participants), "Participants");
+        if(data.scans) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data.scans), "Scans");
+        XLSX.writeFile(wb, "Atelier_Mobilite_Export.xlsx");
         showSuccess("Export réussi !");
         
     } catch(e) {
@@ -678,6 +700,7 @@ function generatePDF() {
     const alt = localStorage.getItem('finalAlternatives') || "Aucune";
     const cons = localStorage.getItem('finalConstraints') || "Aucune";
     const lev = localStorage.getItem('finalLevers') || "Aucun";
+    const groupNote = localStorage.getItem('groupNote') || "";
 
     const win = window.open('', '_blank');
     const content = `
@@ -691,6 +714,7 @@ function generatePDF() {
         .btn-close{background:#ef4444;margin-top:10px;}
         ul{margin:0;padding-left:20px;}
         li{margin-bottom:5px;}
+        .note-box {background:#fffbeb; padding:10px; border-left:4px solid #f59e0b; margin-top:10px;}
     </style>
     </head><body>
     <h1>🌱 Mon Bilan Mobilité - GoDifferent</h1>
@@ -719,6 +743,11 @@ function generatePDF() {
         <p><strong>Leviers :</strong></p>
         <ul>${lev.split(', ').map(i => `<li>${i}</li>`).join('')}</ul>
         
+        <div class="note-box">
+            <strong>📝 Note de Groupe :</strong><br>
+            ${groupNote}
+        </div>
+
         <p style="margin-top:15px;"><strong>Engagement personnel :</strong> ${commitmentLevel}%</p>
     </div>
 
